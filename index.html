@@ -385,7 +385,7 @@ const FB = {
 };
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-const configured = !FB.apiKey.includes('여기에');
+const configured = FB.apiKey && FB.apiKey.length > 0;
 
 if(configured){
   const app=initializeApp(FB);
