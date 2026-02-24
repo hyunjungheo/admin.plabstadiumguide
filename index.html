@@ -389,6 +389,7 @@ const configured = FB.apiKey && FB.apiKey.length > 0;
 
 if(configured){
   const app=initializeApp(FB);
+  
   const db=getFirestore(app);
   const REF=()=>doc(db,'plab','siteData');
 
@@ -2948,20 +2949,22 @@ function savePost(){
   if(!title){toast('제목을 입력하세요');return;}
   const content=document.getElementById('rteBody')?.innerHTML||'';
   const d={
-    id:_editId||'p'+Date.now(),title,postType:_curPostType==='service'?'service':'guide',
-    category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
-    serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
-    postType:_curPostType==='service'?'service':'guide',
-    subCat:(document.getElementById('peSubCat')?.value||document.getElementById('peSubCat')?.options?.[document.getElementById('peSubCat')?.selectedIndex]?.value||'').trim(),
-    emoji:p?.emoji||'📄',
-    excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
-    author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
-    status:document.getElementById('peStat')?.value||'published',
-    content,subCnt:3,
-    date:_editId?S.posts.find(p=>p.id===_editId)?.date||new Date().toISOString():new Date().toISOString(),
-    updatedAt:new Date().toISOString(),
-    views:_editId?S.posts.find(p=>p.id===_editId)?.views||0:0,
-  };
+  id:_editId||'p'+Date.now(),
+  title,
+  postType:_curPostType==='service'?'service':'guide',
+  category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
+  serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
+  subCat:(document.getElementById('peSubCat')?.value||document.getElementById('peSubCat')?.options?.[document.getElementById('peSubCat')?.selectedIndex]?.value||'').trim(),
+  emoji: _editId ? S.posts.find(post => post.id === _editId)?.emoji || '📄' : '📄',
+  excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
+  author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
+  status:document.getElementById('peStat')?.value||'published',
+  content,
+  subCnt:3,
+  date:_editId?S.posts.find(post=>post.id===_editId)?.date||new Date().toISOString():new Date().toISOString(),
+  updatedAt:new Date().toISOString(),
+  views:_editId?S.posts.find(post=>post.id===_editId)?.views||0:0,
+};
   if(_editId){const i=S.posts.findIndex(p=>p.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
   else S.posts.push(d);
   // sp-s* 게시글 저장 시 servicePages도 동시 업데이트 → 홈페이지 반영
