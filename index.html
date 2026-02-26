@@ -1230,11 +1230,15 @@ async function _fbStartLoad(){
 
     _fbBarSet('live');
 
-    // 🔥 전체 렌더링 다시 실행
+    // 🔥 전체 홈 관련 렌더 강제 실행
     if(typeof initHome === "function") initHome();
-    if(typeof rBanner === "function") rBanner();
     if(typeof renderServices === "function") renderServices();
-
+    if(typeof renderGGrid === "function") renderGGrid();
+    if(typeof renderSvcRow === "function") renderSvcRow();
+    if(typeof renderGGrid2 === "function") renderGGrid2();
+    if(typeof renderSvcRow2 === "function") renderSvcRow2();
+    if(typeof rBanner === "function") rBanner();
+    
   }catch(e){
     _fbBarSet('none');
     console.warn('Firebase 데이터 파싱 실패', e);
