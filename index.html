@@ -3235,25 +3235,6 @@ function saveSets(){S.settings.siteName=document.getElementById('sSite').value.t
 function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='plab-cms.json';a.click();}
 function resetData(){if(!confirm('초기화하시겠습니까?'))return;S=JSON.parse(JSON.stringify(DEF));save();pg('dashboard');toast('초기화됨');}
 
-function save(){
-  const json = JSON.stringify(S);
-
-  // 1. 로컬 백업
-  localStorage.setItem('plab_v5', json);
-
-  // 2. Firebase 저장
-  if(window._fbSave){
-    window._fbSave(json)
-      .then(()=>{
-        console.log("🔥 Firebase 저장 완료");
-      })
-      .catch(e=>{
-        console.error("Firebase 저장 실패", e);
-      });
-  } else {
-    console.warn("Firebase 연결 안됨");
-  }
-}
   
 /* ════════════════════════════════════
    MODAL
