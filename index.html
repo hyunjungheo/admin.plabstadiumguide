@@ -1206,28 +1206,39 @@ function _fbBarSet(state){
 
 /* ── 시작 시 Firebase 데이터 로드 ── */
 async function _fbStartLoad(){
-  if(!window._fbLoad){_fbBarSet('none');return;}
+  if(!window._fbLoad){
+    _fbBarSet('none');
+    return;
+  }
+
   _fbBarSet('load');
-  const json=await window._fbLoad();
-  if(!json){_fbBarSet('none');return;}
+
+  const json = await window._fbLoad();
+  if(!json){
+    _fbBarSet('none');
+    return;
+  }
+
   try{
-    const parsed=JSON.parse(json);
-    /* DEF와 병합 */
-    S={
-      ...JSON.parse(JSON.stringify(DEF)),
-      ...parsed,
-      settings:{...JSON.parse(JSON.stringify(DEF)).settings,...(parsed.settings||{}),
-        footer:{...JSON.parse(JSON.stringify(DEF)).settings.footer,...((parsed.settings||{}).footer||{})}},
-      subcategories:{...JSON.parse(JSON.stringify(DEF)).subcategories,...(parsed.subcategories||{})},
-      servicePages:{...JSON.parse(JSON.stringify(DEF)).servicePages,...(parsed.servicePages||{})},
-      postOrder:{...(parsed.postOrder||{})}
-    };
-    localStorage.setItem('plab_v5',json); /* 로컬도 갱신 */
+    const parsed = JSON.parse(json);
+
+    // 🔥 전체 덮어쓰기
+    S = parsed;
+
+    // 로컬 백업
+    localStorage.setItem('plab_v5', json);
+
     _fbBarSet('live');
-    /* 현재 보이는 화면 새로고침 */
-    const cur=document.querySelector('.alink.on');
-    if(cur)cur.click();
-  }catch(e){_fbBarSet('none');console.warn('Firebase 데이터 파싱 실패',e);}
+
+    // 🔥 전체 렌더링 다시 실행
+    if(typeof initHome === "function") initHome();
+    if(typeof rBanner === "function") rBanner();
+    if(typeof renderServices === "function") renderServices();
+
+  }catch(e){
+    _fbBarSet('none');
+    console.warn('Firebase 데이터 파싱 실패', e);
+  }
 }
 
 /* ════════════════════════════════════
