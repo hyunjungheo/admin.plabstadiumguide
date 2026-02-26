@@ -1809,13 +1809,50 @@ function openUpdModal(id){
 let _editUpdId=null;
 function editUpd(id){openUpdModal(id);}
 function saveUpd(id){
-  const _prevU=id?S.updates.find(x=>x.id===id):null;
-  const _bannerImg=_bnrImgData==='__clear__'?null:(_bnrImgData||_prevU?.bannerImage||null);
-  const d={id:id||'u'+Date.now(),type:document.getElementById('uT').value,title:(document.getElementById('uTi')||document.getElementById('uTitle'))?.value.trim()||'',date:document.getElementById('uD').value.trim(),subtitle:document.getElementById('uSub').value.trim(),articleId:document.getElementById('uArt').value,content:document.getElementById('uBody').innerHTML,body:document.getElementById('uBody').innerText,gallery:[..._galleryImages],bannerImage:_bannerImg};
-  if(!d.title){toast('제목을 입력하세요');return;}
-  if(id){const i=S.updates.findIndex(x=>x.id===id);if(i>=0)S.updates[i]=d;else S.updates.push(d);}
-  else S.updates.push(d);
-  save();closeModal();rBanner();toast('✓ 저장됨');
+
+  const _prevU = id ? S.updates.find(x=>x.id===id) : null;
+  const _bannerImg = _bnrImgData==='__clear__'
+    ? null
+    : (_bnrImgData || _prevU?.bannerImage || null);
+
+  const bodyEl = document.getElementById('uBody');
+
+  if(!bodyEl){
+    console.error("uBody 요소를 찾을 수 없음");
+    toast('에디터 로딩 오류');
+    return;
+  }
+
+  const d = {
+    id: id || 'u'+Date.now(),
+    type: document.getElementById('uT')?.value || '',
+    title: (document.getElementById('uTi') || document.getElementById('uTitle'))?.value.trim() || '',
+    date: document.getElementById('uD')?.value.trim() || '',
+    subtitle: document.getElementById('uSub')?.value.trim() || '',
+    articleId: document.getElementById('uArt')?.value || '',
+    content: bodyEl.innerHTML || '',
+    body: bodyEl.innerText || '',
+    gallery: [..._galleryImages],
+    bannerImage: _bannerImg
+  };
+
+  if(!d.title){
+    toast('제목을 입력하세요');
+    return;
+  }
+
+  if(id){
+    const i = S.updates.findIndex(x=>x.id===id);
+    if(i>=0) S.updates[i]=d;
+    else S.updates.push(d);
+  } else {
+    S.updates.push(d);
+  }
+
+  save();
+  closeModal();
+  rBanner();
+  toast('✓ 저장됨');
 }
 function delUpd(id){if(!confirm('삭제하시겠습니까?'))return;S.updates=S.updates.filter(x=>x.id!==id);save();rBanner();toast('삭제됨');}
 // 배너 이미지 관련
