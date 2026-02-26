@@ -124,10 +124,10 @@ select.fi{cursor:pointer}
 .mft{padding:14px 24px;border-bottom:1px solid var(--abdr);border-top:1px solid var(--abdr);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:var(--as)}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--as2);border:1px solid var(--abdr);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--at);box-shadow:0 4px 24px rgba(0,0,0,.35);transform:translateY(8px);opacity:0;transition:all .22s;pointer-events:none;display:flex;align-items:center;gap:8px;min-width:160px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--at);box-shadow:0 8px 32px rgba(0,0,0,.25);transform:translateY(8px);opacity:0;transition:all .22s;pointer-events:none;display:flex;align-items:center;gap:8px;min-width:160px;backdrop-filter:blur(12px)}
 #toast.show{transform:translateY(0);opacity:1}
-#toast.toast-save{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#059669}
-html.dark #toast.toast-save{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.4);color:#34d399}
+#toast.toast-save{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.25);color:#059669}
+html.dark #toast.toast-save{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#34d399}
 #toast-ic{font-size:15px;flex-shrink:0}
 #toast-msg{flex:1}
 
@@ -3243,7 +3243,7 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
-  toastSave('저장됐습니다');
+  toastSave('저장 완료!');
   if(typeof onConfirm==='function') onConfirm();
 }
 
