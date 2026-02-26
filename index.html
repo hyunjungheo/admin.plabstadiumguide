@@ -3234,7 +3234,7 @@ function rSettings(){
 function saveSets(){S.settings.siteName=document.getElementById('sSite').value.trim();S.settings.adminEmail=document.getElementById('sEm').value.trim();const pw=document.getElementById('sPw').value;if(pw)S.settings.adminPw=pw;save();toast('✓ 설정 저장됨');}
 function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='plab-cms.json';a.click();}
 function resetData(){if(!confirm('초기화하시겠습니까?'))return;S=JSON.parse(JSON.stringify(DEF));save();pg('dashboard');toast('초기화됨');}
-function save(){
+function saveAllData(){
   const json = JSON.stringify(S);
 
   // 1. 로컬 백업
