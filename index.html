@@ -376,20 +376,19 @@ import{getFirestore,doc,setDoc,getDoc}from'https://www.gstatic.com/firebasejs/10
    🔧 Firebase 설정값을 아래에 붙여넣으세요
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const FB = {
-  apiKey: "AIzaSyB3tPHPnv961f2PhxVEZb_g2g6mdKxNbsQ",
-  authDomain: "plabstadiumguide.firebaseapp.com",
-  projectId: "plabstadiumguide",
-  storageBucket: "plabstadiumguide.appspot.com",
+  apiKey:            "AIzaSyB3tPHPnv961f2PhxVEZb_g2g6mdKxNbsQ",
+  authDomain:        "plabstadiumguide.firebaseapp.com",
+  projectId:         "plabstadiumguide",
+  storageBucket:     "plabstadiumguide.firebasestorage.app",
   messagingSenderId: "347837323084",
-  appId: "1:347837323084:web:09d157b9b705f5f5d721e9"
+  appId:             "1:347837323084:web:09d157b9b705f5f5d721e9"
 };
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-const configured = FB.apiKey && FB.apiKey.length > 0;
+const configured = !FB.apiKey.includes('여기에');
 
 if(configured){
   const app=initializeApp(FB);
-  
   const db=getFirestore(app);
   const REF=()=>doc(db,'plab','siteData');
 
@@ -1206,43 +1205,28 @@ function _fbBarSet(state){
 
 /* ── 시작 시 Firebase 데이터 로드 ── */
 async function _fbStartLoad(){
-  if(!window._fbLoad){
-    _fbBarSet('none');
-    return;
-  }
-
+  if(!window._fbLoad){_fbBarSet('none');return;}
   _fbBarSet('load');
-
-  const json = await window._fbLoad();
-  if(!json){
-    _fbBarSet('none');
-    return;
-  }
-
+  const json=await window._fbLoad();
+  if(!json){_fbBarSet('none');return;}
   try{
-    const parsed = JSON.parse(json);
-
-    // 🔥 전체 덮어쓰기
-    S = parsed;
-
-    // 로컬 백업
-    localStorage.setItem('plab_v5', json);
-
+    const parsed=JSON.parse(json);
+    /* DEF와 병합 */
+    S={
+      ...JSON.parse(JSON.stringify(DEF)),
+      ...parsed,
+      settings:{...JSON.parse(JSON.stringify(DEF)).settings,...(parsed.settings||{}),
+        footer:{...JSON.parse(JSON.stringify(DEF)).settings.footer,...((parsed.settings||{}).footer||{})}},
+      subcategories:{...JSON.parse(JSON.stringify(DEF)).subcategories,...(parsed.subcategories||{})},
+      servicePages:{...JSON.parse(JSON.stringify(DEF)).servicePages,...(parsed.servicePages||{})},
+      postOrder:{...(parsed.postOrder||{})}
+    };
+    localStorage.setItem('plab_v5',json); /* 로컬도 갱신 */
     _fbBarSet('live');
-
-    // 🔥 전체 홈 관련 렌더 강제 실행
-    if(typeof initHome === "function") initHome();
-    if(typeof renderServices === "function") renderServices();
-    if(typeof renderGGrid === "function") renderGGrid();
-    if(typeof renderSvcRow === "function") renderSvcRow();
-    if(typeof renderGGrid2 === "function") renderGGrid2();
-    if(typeof renderSvcRow2 === "function") renderSvcRow2();
-    if(typeof rBanner === "function") rBanner();
-    
-  }catch(e){
-    _fbBarSet('none');
-    console.warn('Firebase 데이터 파싱 실패', e);
-  }
+    /* 현재 보이는 화면 새로고침 */
+    const cur=document.querySelector('.alink.on');
+    if(cur)cur.click();
+  }catch(e){_fbBarSet('none');console.warn('Firebase 데이터 파싱 실패',e);}
 }
 
 /* ════════════════════════════════════
@@ -1824,50 +1808,13 @@ function openUpdModal(id){
 let _editUpdId=null;
 function editUpd(id){openUpdModal(id);}
 function saveUpd(id){
-
-  const _prevU = id ? S.updates.find(x=>x.id===id) : null;
-  const _bannerImg = _bnrImgData==='__clear__'
-    ? null
-    : (_bnrImgData || _prevU?.bannerImage || null);
-
-const bodyEl = document.getElementById('rteBody');
-
-if(!bodyEl){
-  console.error("rteBody 요소를 찾을 수 없음");
-  toast('에디터가 아직 초기화되지 않았습니다');
-  return;
-}
-
-  const d = {
-    id: id || 'u'+Date.now(),
-    type: document.getElementById('uT')?.value || '',
-    title: (document.getElementById('uTi') || document.getElementById('uTitle'))?.value.trim() || '',
-    date: document.getElementById('uD')?.value.trim() || '',
-    subtitle: document.getElementById('uSub')?.value.trim() || '',
-    articleId: document.getElementById('uArt')?.value || '',
-    content: bodyEl.innerHTML,
-    body: bodyEl.innerText,
-    gallery: [..._galleryImages],
-    bannerImage: _bannerImg
-  };
-
-  if(!d.title){
-    toast('제목을 입력하세요');
-    return;
-  }
-
-  if(id){
-    const i = S.updates.findIndex(x=>x.id===id);
-    if(i>=0) S.updates[i]=d;
-    else S.updates.push(d);
-  } else {
-    S.updates.push(d);
-  }
-
-  save();
-  closeModal();
-  rBanner();
-  toast('✓ 저장됨');
+  const _prevU=id?S.updates.find(x=>x.id===id):null;
+  const _bannerImg=_bnrImgData==='__clear__'?null:(_bnrImgData||_prevU?.bannerImage||null);
+  const d={id:id||'u'+Date.now(),type:document.getElementById('uT').value,title:(document.getElementById('uTi')||document.getElementById('uTitle'))?.value.trim()||'',date:document.getElementById('uD').value.trim(),subtitle:document.getElementById('uSub').value.trim(),articleId:document.getElementById('uArt').value,content:document.getElementById('uBody').innerHTML,body:document.getElementById('uBody').innerText,gallery:[..._galleryImages],bannerImage:_bannerImg};
+  if(!d.title){toast('제목을 입력하세요');return;}
+  if(id){const i=S.updates.findIndex(x=>x.id===id);if(i>=0)S.updates[i]=d;else S.updates.push(d);}
+  else S.updates.push(d);
+  save();closeModal();rBanner();toast('✓ 저장됨');
 }
 function delUpd(id){if(!confirm('삭제하시겠습니까?'))return;S.updates=S.updates.filter(x=>x.id!==id);save();rBanner();toast('삭제됨');}
 // 배너 이미지 관련
@@ -1887,7 +1834,7 @@ function clearBnrImg(){
   const prev=document.getElementById('bnrImgPreview');
   if(prev)prev.innerHTML='<span style="font-size:11px;color:var(--am)">이미지 없음</span>';
 }
-function toggleBanner(id,val){const u=S.updates.find(x=>x.id===id);if(u){u.showInBanner=val;rBanner();toast(val?'✓ 배너 ON':'배너 OFF');}}
+function toggleBanner(id,val){const u=S.updates.find(x=>x.id===id);if(u){u.showInBanner=val;save();rBanner();toast(val?'✓ 배너 ON':'배너 OFF');}}
 
 
 /* ════════════════════════════════════
@@ -2148,7 +2095,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     // order 재부여
     arr.forEach((c,i)=>c.order=i);
     S.categories=arr;
-    rPostsFiltered('guide');
+    save();rPostsFiltered('guide');
   } else if(type==='sub'&&_dragType==='sub'){
     // 서브카테고리 순서 변경 (같은 카테고리 내)
     const [dragCat,dragSub]=_dragId.split('__');
@@ -2164,7 +2111,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     if(fromIdx<0||toIdx<0)return;
     arr.splice(fromIdx,1);
     arr.splice(isTop?toIdx:toIdx+1,0,dragSub);
-    rPostsFiltered('guide');
+    save();rPostsFiltered('guide');
   } else if(type==='post'&&_dragType==='post'){
     // 게시글 순서 변경 (같은 서브카테고리 내)
     if(_dragCat!==targetCat||_dragSub!==targetSub||_dragId===targetId)return;
@@ -2179,7 +2126,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     order.splice(fromIdx,1);
     order.splice(isTop?toIdx:toIdx+1,0,_dragId);
     S.postOrder[orderKey]=order;
-    rPostsFiltered('guide');
+    save();rPostsFiltered('guide');
   } else if(type==='svcpost'&&_dragType==='svcpost'){
     // 서비스 게시글 순서 변경
     if(!S.postOrder)S.postOrder={};
@@ -2194,7 +2141,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
       order.splice(fromIdx,1);
       order.splice(isTop?toIdx:toIdx+1,0,_dragId);
       S.postOrder[orderKey]=order;
-      rPostsFiltered('service');
+      save();rPostsFiltered('service');
     }
   }
   _dragType=null;_dragId=null;_dragCat=null;_dragSub=null;
@@ -2210,7 +2157,7 @@ function moveCat(catId, dir){
   arr[idx].order=arr[swapIdx].order??swapIdx;
   arr[swapIdx].order=tmp;
   S.categories=arr;
-  rPostsFiltered('guide');
+  save();rPostsFiltered('guide');
 }
 
 /* ── 순서 변경: 서브카테고리 ── */
@@ -2226,7 +2173,7 @@ function moveSub(catKey, subName, dir){
   const swapIdx=idx+dir;
   if(swapIdx<0||swapIdx>=arr.length)return;
   [arr[idx],arr[swapIdx]]=[arr[swapIdx],arr[idx]];
-  rPostsFiltered('guide');
+  save();rPostsFiltered('guide');
 }
 
 /* ── 순서 변경: 게시글 ── */
@@ -2242,7 +2189,7 @@ function movePost(postId, catKey, subName, dir){
   if(swapIdx<0||swapIdx>=order.length)return;
   [order[idx],order[swapIdx]]=[order[swapIdx],order[idx]];
   S.postOrder[orderKey]=order;
-  rPostsFiltered('guide');
+  save();rPostsFiltered('guide');
 }
 
 /* ── 카테고리 인라인 편집 ── */
@@ -2257,12 +2204,12 @@ function saveCatInline(id){
   const d={id:id||'gc'+Date.now(),emoji:document.getElementById('cE').value.trim(),name:document.getElementById('cN').value.trim(),desc:document.getElementById('cD').value.trim(),cv:id?S.categories.find(x=>x.id===id)?.cv||'cv-bl':'cv-bl',order:parseInt(document.getElementById('cO').value)||S.categories.length};
   if(!d.name){toast('이름을 입력하세요');return;}
   if(id){const i=S.categories.findIndex(x=>x.id===id);if(i>=0)S.categories[i]=d;}else S.categories.push(d);
-  closeModal();rPostsFiltered('guide');toast('✓ 저장됨');
+  save();closeModal();rPostsFiltered('guide');toast('✓ 저장됨');
 }
 function deleteCatInline(id){
   if(!confirm('카테고리를 삭제하면 해당 카테고리의 게시글이 미분류됩니다. 계속하시겠습니까?'))return;
   S.categories=S.categories.filter(x=>x.id!==id);
-  closeModal();rPostsFiltered('guide');toast('삭제됨');
+  save();closeModal();rPostsFiltered('guide');toast('삭제됨');
 }
 
 /* ── 서브카테고리 인라인 추가 ── */
@@ -2273,7 +2220,7 @@ function addSubInline(catKey){
   if(!S.subcategories[catKey])S.subcategories[catKey]=[];
   if(S.subcategories[catKey].includes(name.trim())){toast('이미 존재합니다');return;}
   S.subcategories[catKey].push(name.trim());
-  rPostsFiltered('guide');toast('✓ 카테고리 추가됨');
+  save();rPostsFiltered('guide');toast('✓ 카테고리 추가됨');
 }
 
 /* ── 서브카테고리 삭제 ── */
@@ -2282,7 +2229,7 @@ function deleteSub(catKey, subName){
   if(!confirm(`'${subName}'을 삭제하시겠습니까?${cnt?`\n(게시글 ${cnt}개는 '기타'로 이동됩니다.)`:''}`)  )return;
   if(S.subcategories&&S.subcategories[catKey])S.subcategories[catKey]=S.subcategories[catKey].filter(s=>s!==subName);
   S.posts.forEach(p=>{if(p.category===catKey&&p.subCat===subName)p.subCat='기타';});
-  rPostsFiltered('guide');toast('삭제됨');
+  save();rPostsFiltered('guide');toast('삭제됨');
 }
 
 function openEditorTyped(type,id){
@@ -2293,7 +2240,7 @@ function openEditorTyped(type,id){
 function delPost(id,type){
   if(!confirm('삭제?'))return;
   S.posts=S.posts.filter(p=>p.id!==id);
-  
+  save();
   if(type) rPostsFiltered(type);
   else rPosts();
   toast('삭제됨');
@@ -2386,9 +2333,9 @@ function saveCat(id){
   if(!d.name){toast('이름 입력');return;}
   if(id){const i=S.categories.findIndex(x=>x.id===id);if(i>=0)S.categories[i]=d;}
   else S.categories.push(d);
-  closeModal();rGuide();toast('✓ 저장됨');
+  save();closeModal();rGuide();toast('✓ 저장됨');
 }
-function delCat(id){if(!confirm('삭제?'))return;S.categories=S.categories.filter(x=>x.id!==id);rGuide();toast('삭제됨');}
+function delCat(id){if(!confirm('삭제?'))return;S.categories=S.categories.filter(x=>x.id!==id);save();rGuide();toast('삭제됨');}
 
 /* ════════════════════════════════════
    ⑤ HOME SERVICE CARD
@@ -2468,7 +2415,7 @@ function rPosts(){
     '<div style="text-align:center;padding:40px;color:var(--am)">게시글이 없습니다</div>'}</div>
   </div>`;
 }
-  
+
 function openEditor(id){
   _editId=id||null;
   let p=id?S.posts.find(x=>x.id===id):null;
@@ -3001,22 +2948,20 @@ function savePost(){
   if(!title){toast('제목을 입력하세요');return;}
   const content=document.getElementById('rteBody')?.innerHTML||'';
   const d={
-  id:_editId||'p'+Date.now(),
-  title,
-  postType:_curPostType==='service'?'service':'guide',
-  category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
-  serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
-  subCat:(document.getElementById('peSubCat')?.value||document.getElementById('peSubCat')?.options?.[document.getElementById('peSubCat')?.selectedIndex]?.value||'').trim(),
-  emoji: _editId ? S.posts.find(post => post.id === _editId)?.emoji || '📄' : '📄',
-  excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
-  author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
-  status:document.getElementById('peStat')?.value||'published',
-  content,
-  subCnt:3,
-  date:_editId?S.posts.find(post=>post.id===_editId)?.date||new Date().toISOString():new Date().toISOString(),
-  updatedAt:new Date().toISOString(),
-  views:_editId?S.posts.find(post=>post.id===_editId)?.views||0:0,
-};
+    id:_editId||'p'+Date.now(),title,postType:_curPostType==='service'?'service':'guide',
+    category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
+    serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
+    postType:_curPostType==='service'?'service':'guide',
+    subCat:(document.getElementById('peSubCat')?.value||document.getElementById('peSubCat')?.options?.[document.getElementById('peSubCat')?.selectedIndex]?.value||'').trim(),
+    emoji:p?.emoji||'📄',
+    excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
+    author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
+    status:document.getElementById('peStat')?.value||'published',
+    content,subCnt:3,
+    date:_editId?S.posts.find(p=>p.id===_editId)?.date||new Date().toISOString():new Date().toISOString(),
+    updatedAt:new Date().toISOString(),
+    views:_editId?S.posts.find(p=>p.id===_editId)?.views||0:0,
+  };
   if(_editId){const i=S.posts.findIndex(p=>p.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
   else S.posts.push(d);
   // sp-s* 게시글 저장 시 servicePages도 동시 업데이트 → 홈페이지 반영
@@ -3249,26 +3194,7 @@ function rSettings(){
 function saveSets(){S.settings.siteName=document.getElementById('sSite').value.trim();S.settings.adminEmail=document.getElementById('sEm').value.trim();const pw=document.getElementById('sPw').value;if(pw)S.settings.adminPw=pw;save();toast('✓ 설정 저장됨');}
 function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='plab-cms.json';a.click();}
 function resetData(){if(!confirm('초기화하시겠습니까?'))return;S=JSON.parse(JSON.stringify(DEF));save();pg('dashboard');toast('초기화됨');}
-function saveAllData(){
-  const json = JSON.stringify(S);
 
-  // 1. 로컬 백업
-  localStorage.setItem('plab_v5', json);
-
-  // 2. Firebase 저장
-  if(window._fbSave){
-    window._fbSave(json)
-      .then(()=>{
-        console.log("🔥 Firebase 저장 완료");
-      })
-      .catch(e=>{
-        console.error("Firebase 저장 실패", e);
-      });
-  } else {
-    console.warn("Firebase 연결 안됨");
-  }
-}
-  
 /* ════════════════════════════════════
    MODAL
 ════════════════════════════════════ */
