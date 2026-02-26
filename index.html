@@ -1837,8 +1837,8 @@ if(!bodyEl){
     date: document.getElementById('uD')?.value.trim() || '',
     subtitle: document.getElementById('uSub')?.value.trim() || '',
     articleId: document.getElementById('uArt')?.value || '',
-    content: bodyEl.innerHTML || '',
-    body: bodyEl.innerText || '',
+    content: editor.getHTML(),
+    body: editor.getText(),
     gallery: [..._galleryImages],
     bannerImage: _bannerImg
   };
