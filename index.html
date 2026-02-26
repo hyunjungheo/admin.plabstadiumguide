@@ -1872,7 +1872,7 @@ function clearBnrImg(){
   const prev=document.getElementById('bnrImgPreview');
   if(prev)prev.innerHTML='<span style="font-size:11px;color:var(--am)">이미지 없음</span>';
 }
-function toggleBanner(id,val){const u=S.updates.find(x=>x.id===id);if(u){u.showInBanner=val;save();rBanner();toast(val?'✓ 배너 ON':'배너 OFF');}}
+function toggleBanner(id,val){const u=S.updates.find(x=>x.id===id);if(u){u.showInBanner=val;rBanner();toast(val?'✓ 배너 ON':'배너 OFF');}}
 
 
 /* ════════════════════════════════════
@@ -2133,7 +2133,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     // order 재부여
     arr.forEach((c,i)=>c.order=i);
     S.categories=arr;
-    save();rPostsFiltered('guide');
+    rPostsFiltered('guide');
   } else if(type==='sub'&&_dragType==='sub'){
     // 서브카테고리 순서 변경 (같은 카테고리 내)
     const [dragCat,dragSub]=_dragId.split('__');
@@ -2149,7 +2149,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     if(fromIdx<0||toIdx<0)return;
     arr.splice(fromIdx,1);
     arr.splice(isTop?toIdx:toIdx+1,0,dragSub);
-    save();rPostsFiltered('guide');
+    rPostsFiltered('guide');
   } else if(type==='post'&&_dragType==='post'){
     // 게시글 순서 변경 (같은 서브카테고리 내)
     if(_dragCat!==targetCat||_dragSub!==targetSub||_dragId===targetId)return;
@@ -2164,7 +2164,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     order.splice(fromIdx,1);
     order.splice(isTop?toIdx:toIdx+1,0,_dragId);
     S.postOrder[orderKey]=order;
-    save();rPostsFiltered('guide');
+    rPostsFiltered('guide');
   } else if(type==='svcpost'&&_dragType==='svcpost'){
     // 서비스 게시글 순서 변경
     if(!S.postOrder)S.postOrder={};
@@ -2179,7 +2179,7 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
       order.splice(fromIdx,1);
       order.splice(isTop?toIdx:toIdx+1,0,_dragId);
       S.postOrder[orderKey]=order;
-      save();rPostsFiltered('service');
+      rPostsFiltered('service');
     }
   }
   _dragType=null;_dragId=null;_dragCat=null;_dragSub=null;
@@ -2195,7 +2195,7 @@ function moveCat(catId, dir){
   arr[idx].order=arr[swapIdx].order??swapIdx;
   arr[swapIdx].order=tmp;
   S.categories=arr;
-  save();rPostsFiltered('guide');
+  rPostsFiltered('guide');
 }
 
 /* ── 순서 변경: 서브카테고리 ── */
@@ -2211,7 +2211,7 @@ function moveSub(catKey, subName, dir){
   const swapIdx=idx+dir;
   if(swapIdx<0||swapIdx>=arr.length)return;
   [arr[idx],arr[swapIdx]]=[arr[swapIdx],arr[idx]];
-  save();rPostsFiltered('guide');
+  rPostsFiltered('guide');
 }
 
 /* ── 순서 변경: 게시글 ── */
@@ -2227,7 +2227,7 @@ function movePost(postId, catKey, subName, dir){
   if(swapIdx<0||swapIdx>=order.length)return;
   [order[idx],order[swapIdx]]=[order[swapIdx],order[idx]];
   S.postOrder[orderKey]=order;
-  save();rPostsFiltered('guide');
+  rPostsFiltered('guide');
 }
 
 /* ── 카테고리 인라인 편집 ── */
@@ -2242,12 +2242,12 @@ function saveCatInline(id){
   const d={id:id||'gc'+Date.now(),emoji:document.getElementById('cE').value.trim(),name:document.getElementById('cN').value.trim(),desc:document.getElementById('cD').value.trim(),cv:id?S.categories.find(x=>x.id===id)?.cv||'cv-bl':'cv-bl',order:parseInt(document.getElementById('cO').value)||S.categories.length};
   if(!d.name){toast('이름을 입력하세요');return;}
   if(id){const i=S.categories.findIndex(x=>x.id===id);if(i>=0)S.categories[i]=d;}else S.categories.push(d);
-  save();closeModal();rPostsFiltered('guide');toast('✓ 저장됨');
+  closeModal();rPostsFiltered('guide');toast('✓ 저장됨');
 }
 function deleteCatInline(id){
   if(!confirm('카테고리를 삭제하면 해당 카테고리의 게시글이 미분류됩니다. 계속하시겠습니까?'))return;
   S.categories=S.categories.filter(x=>x.id!==id);
-  save();closeModal();rPostsFiltered('guide');toast('삭제됨');
+  closeModal();rPostsFiltered('guide');toast('삭제됨');
 }
 
 /* ── 서브카테고리 인라인 추가 ── */
@@ -2258,7 +2258,7 @@ function addSubInline(catKey){
   if(!S.subcategories[catKey])S.subcategories[catKey]=[];
   if(S.subcategories[catKey].includes(name.trim())){toast('이미 존재합니다');return;}
   S.subcategories[catKey].push(name.trim());
-  save();rPostsFiltered('guide');toast('✓ 카테고리 추가됨');
+  rPostsFiltered('guide');toast('✓ 카테고리 추가됨');
 }
 
 /* ── 서브카테고리 삭제 ── */
@@ -2267,7 +2267,7 @@ function deleteSub(catKey, subName){
   if(!confirm(`'${subName}'을 삭제하시겠습니까?${cnt?`\n(게시글 ${cnt}개는 '기타'로 이동됩니다.)`:''}`)  )return;
   if(S.subcategories&&S.subcategories[catKey])S.subcategories[catKey]=S.subcategories[catKey].filter(s=>s!==subName);
   S.posts.forEach(p=>{if(p.category===catKey&&p.subCat===subName)p.subCat='기타';});
-  save();rPostsFiltered('guide');toast('삭제됨');
+  rPostsFiltered('guide');toast('삭제됨');
 }
 
 function openEditorTyped(type,id){
@@ -2278,7 +2278,7 @@ function openEditorTyped(type,id){
 function delPost(id,type){
   if(!confirm('삭제?'))return;
   S.posts=S.posts.filter(p=>p.id!==id);
-  save();
+  
   if(type) rPostsFiltered(type);
   else rPosts();
   toast('삭제됨');
@@ -2371,9 +2371,9 @@ function saveCat(id){
   if(!d.name){toast('이름 입력');return;}
   if(id){const i=S.categories.findIndex(x=>x.id===id);if(i>=0)S.categories[i]=d;}
   else S.categories.push(d);
-  save();closeModal();rGuide();toast('✓ 저장됨');
+  closeModal();rGuide();toast('✓ 저장됨');
 }
-function delCat(id){if(!confirm('삭제?'))return;S.categories=S.categories.filter(x=>x.id!==id);save();rGuide();toast('삭제됨');}
+function delCat(id){if(!confirm('삭제?'))return;S.categories=S.categories.filter(x=>x.id!==id);rGuide();toast('삭제됨');}
 
 /* ════════════════════════════════════
    ⑤ HOME SERVICE CARD
@@ -2454,6 +2454,26 @@ function rPosts(){
   </div>`;
 }
 
+function save(){
+  const json = JSON.stringify(S);
+
+  // 1. 로컬 백업
+  localStorage.setItem('plab_v5', json);
+
+  // 2. Firebase 저장
+  if(window._fbSave){
+    window._fbSave(json)
+      .then(()=>{
+        console.log("🔥 Firebase 저장 완료");
+      })
+      .catch(e=>{
+        console.error("Firebase 저장 실패", e);
+      });
+  } else {
+    console.warn("Firebase 연결 안됨");
+  }
+}
+  
 function openEditor(id){
   _editId=id||null;
   let p=id?S.posts.find(x=>x.id===id):null;
