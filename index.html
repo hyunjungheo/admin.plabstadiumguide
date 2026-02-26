@@ -1185,7 +1185,7 @@ const save = async()=>{
     _fbBarSet(ok?'ok':'err');
   }
 };
-const toast = (msg,dur=2000)=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
+const toast = (msg,dur=2500)=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
 
 /* ── Firebase 상태바 업데이트 ── */
 function _fbBarSet(state){
@@ -1680,7 +1680,7 @@ function openUpdModal(id){
   // pActs
   document.getElementById('pActs').innerHTML=`
     <button class="btn btn-gh" onclick="rBanner()">← 목록</button>
-    <button class="btn btn-bl" onclick="saveUpd('${id||''}')">💾 저장</button>`;
+    <button class="btn btn-bl" id="btnSaveUpd" onclick="this.textContent='저장 중…';this.disabled=true;saveUpd('${id||''}').finally(()=>{this.textContent='💾 저장';this.disabled=false;})">💾 저장</button>`;
 
   const posts=S.posts.filter(p=>p.status==='published');
   document.getElementById('mainBody').innerHTML=`
@@ -1807,14 +1807,30 @@ function openUpdModal(id){
 }
 let _editUpdId=null;
 function editUpd(id){openUpdModal(id);}
-function saveUpd(id){
+async function saveUpd(id){
   const _prevU=id?S.updates.find(x=>x.id===id):null;
   const _bannerImg=_bnrImgData==='__clear__'?null:(_bnrImgData||_prevU?.bannerImage||null);
-  const d={id:id||'u'+Date.now(),type:document.getElementById('uT').value,title:(document.getElementById('uTi')||document.getElementById('uTitle'))?.value.trim()||'',date:document.getElementById('uD').value.trim(),subtitle:document.getElementById('uSub').value.trim(),articleId:document.getElementById('uArt').value,content:document.getElementById('uBody').innerHTML,body:document.getElementById('uBody').innerText,gallery:[..._galleryImages],bannerImage:_bannerImg};
-  if(!d.title){toast('제목을 입력하세요');return;}
+  // 에디터 id가 rteBody이므로 rteBody에서 읽음 (uBody 폴백 포함)
+  const bodyEl=document.getElementById('rteBody')||document.getElementById('uBody');
+  const d={
+    id:id||'u'+Date.now(),
+    type:document.getElementById('uT')?.value||'new',
+    title:(document.getElementById('uTitle')||document.getElementById('uTi'))?.value.trim()||'',
+    date:document.getElementById('uD')?.value.trim()||'',
+    subtitle:document.getElementById('uSub')?.value.trim()||'',
+    articleId:document.getElementById('uArt')?.value||'',
+    content:bodyEl?.innerHTML||'',
+    body:bodyEl?.innerText||'',
+    gallery:[..._galleryImages],
+    bannerImage:_bannerImg,
+    showInBanner:_prevU?.showInBanner??false,
+  };
+  if(!d.title){toast('⚠️ 제목을 입력하세요');return;}
   if(id){const i=S.updates.findIndex(x=>x.id===id);if(i>=0)S.updates[i]=d;else S.updates.push(d);}
   else S.updates.push(d);
-  save();closeModal();rBanner();toast('✓ 저장됨');
+  await save();
+  toast('✓ 업데이트 소식이 저장됐습니다');
+  rBanner();
 }
 function delUpd(id){if(!confirm('삭제하시겠습니까?'))return;S.updates=S.updates.filter(x=>x.id!==id);save();rBanner();toast('삭제됨');}
 // 배너 이미지 관련
@@ -2429,7 +2445,7 @@ function openEditor(id){
       <option value="draft" ${p?.status==='draft'?'selected':''}>임시저장</option>
     </select>
     <button class="btn btn-gh" onclick="rPosts()">← 목록</button>
-    <button class="btn btn-bl" onclick="savePost()">저장</button>`;
+    <button class="btn btn-bl" id="btnSavePost" onclick="this.textContent='저장 중…';this.disabled=true;savePost().finally(()=>{this.textContent='저장';this.disabled=false;})">저장</button>`;
 
   const catOpts=S.categories.map(c=>`<option value="${c.id}" ${p?.category===c.id?'selected':''}>${c.emoji} ${c.name}</option>`).join('');
   // 카테고리 변경 시 소그룹 목록 동적 갱신
@@ -2605,7 +2621,7 @@ function toggleEditorFullscreen(){
     fs.innerHTML=`<div class="editor-fullscreen-hd">
       <input id="fsTitleInp" value="${titleVal}" placeholder="제목 입력..." oninput="syncFsTitle(this.value)">
       <button class="btn btn-gh bxs" onclick="toggleEditorFullscreen()">✕ 전체화면 종료</button>
-      <button class="btn btn-bl bxs" onclick="savePost();toggleEditorFullscreen()">💾 저장</button>
+      <button class="btn btn-bl bxs" onclick="this.textContent='저장 중…';this.disabled=true;savePost().then(()=>toggleEditorFullscreen()).finally(()=>{this.textContent='💾 저장';this.disabled=false;})">💾 저장</button>
     </div>`;
     // 기존 rte-wrap 이동
     fs.appendChild(wrap.cloneNode(true));
@@ -2943,34 +2959,38 @@ function applyTableCellColor(color){
   }
 }
 
-function savePost(){
+async function savePost(){
   const title=document.getElementById('peTitle')?.value.trim();
-  if(!title){toast('제목을 입력하세요');return;}
+  if(!title){toast('⚠️ 제목을 입력하세요');return;}
   const content=document.getElementById('rteBody')?.innerHTML||'';
+  // _editId로 기존 게시글 참조 (p 변수가 없으므로 직접 find)
+  const existing=_editId?S.posts.find(x=>x.id===_editId):null;
   const d={
-    id:_editId||'p'+Date.now(),title,postType:_curPostType==='service'?'service':'guide',
+    id:_editId||'p'+Date.now(),
+    title,
+    postType:_curPostType==='service'?'service':'guide',
     category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
     serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
-    postType:_curPostType==='service'?'service':'guide',
-    subCat:(document.getElementById('peSubCat')?.value||document.getElementById('peSubCat')?.options?.[document.getElementById('peSubCat')?.selectedIndex]?.value||'').trim(),
-    emoji:p?.emoji||'📄',
+    subCat:(document.getElementById('peSubCat')?.value||'').trim(),
+    emoji:existing?.emoji||'📄',
     excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
     author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
     status:document.getElementById('peStat')?.value||'published',
-    content,subCnt:3,
-    date:_editId?S.posts.find(p=>p.id===_editId)?.date||new Date().toISOString():new Date().toISOString(),
+    content,
+    subCnt:3,
+    date:existing?.date||new Date().toISOString(),
     updatedAt:new Date().toISOString(),
-    views:_editId?S.posts.find(p=>p.id===_editId)?.views||0:0,
+    views:existing?.views||0,
   };
-  if(_editId){const i=S.posts.findIndex(p=>p.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
+  if(_editId){const i=S.posts.findIndex(x=>x.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
   else S.posts.push(d);
   // sp-s* 게시글 저장 시 servicePages도 동시 업데이트 → 홈페이지 반영
   if(d.serviceId&&d.id.startsWith('sp-')){
-    if(!S.servicePages) S.servicePages={};
+    if(!S.servicePages)S.servicePages={};
     S.servicePages[d.serviceId]=content;
   }
-  save();
-  toast('✓ 저장됨');
+  await save();
+  toast(_curPostType==='service'?'✓ 서비스 게시글이 저장됐습니다':'✓ 가이드 게시글이 저장됐습니다');
   if(_curPostType==='service') rPostsFiltered('service');
 }
 function delPost(id){if(!confirm('삭제?'))return;S.posts=S.posts.filter(p=>p.id!==id);save();rPosts();toast('삭제됨');}
