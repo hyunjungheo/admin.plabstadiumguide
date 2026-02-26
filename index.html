@@ -124,8 +124,12 @@ select.fi{cursor:pointer}
 .mft{padding:14px 24px;border-bottom:1px solid var(--abdr);border-top:1px solid var(--abdr);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:var(--as)}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--as2);border:1px solid var(--abdr);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--at);box-shadow:0 4px 24px rgba(0,0,0,.35);transform:translateY(8px);opacity:0;transition:all .22s;pointer-events:none}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--as2);border:1px solid var(--abdr);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--at);box-shadow:0 4px 24px rgba(0,0,0,.35);transform:translateY(8px);opacity:0;transition:all .22s;pointer-events:none;display:flex;align-items:center;gap:8px;min-width:160px}
 #toast.show{transform:translateY(0);opacity:1}
+#toast.toast-save{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#059669}
+html.dark #toast.toast-save{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.4);color:#34d399}
+#toast-ic{font-size:15px;flex-shrink:0}
+#toast-msg{flex:1}
 
 /* ── SPLIT ── */
 .split{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
@@ -558,7 +562,7 @@ if(configured){
     <div class="mft" id="mFt"></div>
   </div>
 </div>
-<div id="toast"></div>
+<div id="toast"><span id="toast-ic"></span><span id="toast-msg"></span></div>
 <!-- IMAGE RESIZE BAR -->
 <div class="img-resize-bar" id="imgResizeBar">
   <span id="imgResizeInfo" style="color:var(--am)">-</span>
@@ -1185,7 +1189,18 @@ const save = async()=>{
     _fbBarSet(ok?'ok':'err');
   }
 };
-const toast = (msg,dur=2500)=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);};
+const toast = (msg, dur=2500, isSave=false)=>{
+  const t=document.getElementById('toast');
+  const ic=document.getElementById('toast-ic');
+  const ms=document.getElementById('toast-msg');
+  if(ic) ic.textContent=isSave?'✓':'';
+  if(ms) ms.textContent=msg; else t.textContent=msg;
+  t.classList.toggle('toast-save', isSave);
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'), dur);
+};
+const toastSave = (msg, dur=2800)=>toast(msg, dur, true);
 
 /* ── Firebase 상태바 업데이트 ── */
 function _fbBarSet(state){
@@ -3226,16 +3241,10 @@ function openModal(title,body,buttons){
 }
 function closeModal(){document.getElementById('mback').classList.remove('open');}
 
-/* ── 저장 완료 확인 모달 ── */
+/* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
-  const body=`
-    <div style="text-align:center;padding:12px 0 8px">
-      <div style="font-size:44px;margin-bottom:14px">✅</div>
-      <div style="font-size:16px;font-weight:700;color:var(--at);margin-bottom:8px">${msg}</div>
-      <div style="font-size:13px;color:var(--am)">변경사항이 저장됐습니다.</div>
-    </div>`;
-  openModal('저장 완료', body, [{l:'확인', c:'btn-bl', f:'_saveConfirmOk()'}]);
-  window._saveConfirmOk=()=>{ closeModal(); if(typeof onConfirm==='function') onConfirm(); };
+  toastSave('저장됐습니다');
+  if(typeof onConfirm==='function') onConfirm();
 }
 
 /* ── UTILS ── */
