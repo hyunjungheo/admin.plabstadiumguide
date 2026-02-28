@@ -560,7 +560,7 @@ if(configured){
       </div>
       <div class="auser" onclick="doLogout()">
         <div class="aava">A</div>
-        <div><div class="auname">관리자</div><div class="auemail" id="aEmail">admin@plab.kr</div></div>
+        <div><div class="auname">관리자</div><div class="auemail" id="aEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e687828b8f88a6968a8784c88d94">[email&#160;protected]</a></div></div>
       </div>
     </div>
   </aside>
@@ -649,7 +649,7 @@ if(configured){
   <button class="btn btn-gh bxs" onclick="closeImgResize()">✕</button>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ── 어드민 테마 ── */
 function initAdminTheme(){
   const t=localStorage.getItem('plab_admin_theme')||'light';
@@ -1934,7 +1934,7 @@ function openUpdModal(id){
   setTimeout(()=>{const rb=document.getElementById('rteBody');if(rb){rb._rteClickBound=false;rb.focus();}initTableResize();},80);
 }
 let _editUpdId=null;
-function editUpd(id){openUpdModal(id);}
+async function editUpd(id){openUpdModal(id);}
 async function saveUpd(id){
   const _prevU=id?S.updates.find(x=>x.id===id):null;
   // 배너 이미지: base64이면 Storage 업로드
@@ -2599,7 +2599,7 @@ function onCatHeroImgSelect(e){
   };
   r.readAsDataURL(f);
 }
-function clearCatHeroImg(){
+async function clearCatHeroImg(){
   document.getElementById('cHeroImg').value='';
   const prev=document.getElementById('catHeroPreview');
   if(prev){
@@ -3537,7 +3537,7 @@ function toggleRel(id,el){
   renderRelSel();
 }
 
-async function savePost(){
+async async function savePost(){
   const title=document.getElementById('peTitle')?.value.trim();
   if(!title){toast('⚠️ 제목을 입력하세요');return;}
   // 본문 내 base64 이미지 Storage 업로드
@@ -3863,11 +3863,4 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
   toastSave('저장 완료!');
-  if(typeof onConfirm==='function') onConfirm();
-}
-
-/* ── UTILS ── */
-function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-</script>
-</body>
-</html>
+  if
