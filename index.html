@@ -500,9 +500,25 @@ if(configured){
     await withRetry(()=>setDoc(REF(),{data:json,savedAt:new Date().toISOString()}));
   };
   window._fbSave=async(json)=>{
-    if(!navigator.onLine){_pendingSave=json;return false;}
-    try{await _rawSave(json);_pendingSave=null;return true;}
-    catch(e){console.error('Firebase 저장 오류',e);_pendingSave=json;return false;}
+    if(!navigator.onLine){_pendingSave=json;window._lastSaveError='오프라인 상태입니다. 인터넷 연결을 확인해 주세요.';return false;}
+    try{await _rawSave(json);_pendingSave=null;window._lastSaveError='';return true;}
+    catch(e){
+      console.error('Firebase 저장 오류',e);
+      _pendingSave=json;
+      const code=e.code||'';const msg=e.message||'';
+      if(code.includes('permission')||code.includes('unauthorized')||msg.includes('Missing or insufficient permissions')){
+        window._lastSaveError='Firebase 권한 오류
+→ Firestore Rules에서 write 권한을 확인해 주세요.';
+      } else if(msg.includes('document') && msg.includes('exceed')||msg.includes('maximum')){
+        window._lastSaveError='저장 데이터가 너무 큽니다 (Firestore 1MB 초과)
+→ 이미지를 Firebase Storage에 업로드한 뒤 저장하세요.';
+      } else if(!navigator.onLine){
+        window._lastSaveError='오프라인 상태입니다.';
+      } else {
+        window._lastSaveError=`저장 실패: ${msg||code||'알 수 없는 오류'}`;
+      }
+      return false;
+    }
   };
 
   /* ── Firestore 로드 (재시도) ── */
@@ -1312,6 +1328,20 @@ const save = async()=>{
   if(window._fbSave){
     const ok=await window._fbSave(json);
     _fbBarSet(ok?'ok':'err');
+    if(!ok && window._lastSaveError){
+      const reason=window._lastSaveError;
+      window._lastSaveError='';
+      const box=document.createElement('div');
+      box.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:16px 20px;border-radius:10px;z-index:9999;max-width:400px;font-size:13px;line-height:1.8;box-shadow:0 8px 30px rgba(0,0,0,.3);white-space:pre-line';
+      box.textContent='저장 실패\n\n'+reason;
+      const btn=document.createElement('button');
+      btn.textContent='확인';
+      btn.style.cssText='display:block;margin-top:12px;padding:6px 20px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;width:100%';
+      btn.onclick=()=>box.remove();
+      box.appendChild(btn);
+      document.body.appendChild(box);
+      setTimeout(()=>box.remove(),8000);
+    }
   }
 };
 const toast = (msg, dur=2500, isSave=false)=>{
@@ -1381,10 +1411,19 @@ function _fbBarSet(state){
 
 /* ── 시작 시 Firebase 데이터 로드 ── */
 async function _fbStartLoad(){
+  // type="module" 스크립트 로드 대기 (최대 3초)
+  if(!window._fbLoad){
+    _fbBarSet('load');
+    let waited=0;
+    while(!window._fbLoad && waited<3000){
+      await new Promise(r=>setTimeout(r,100));
+      waited+=100;
+    }
+  }
   if(!window._fbLoad){_fbBarSet('none');return;}
   _fbBarSet('load');
   const json=await window._fbLoad();
-  if(!json){_fbBarSet('none');return;}
+  if(!json){_fbBarSet('live');return;}
   try{
     const parsed=JSON.parse(json);
     /* DEF와 병합 */
