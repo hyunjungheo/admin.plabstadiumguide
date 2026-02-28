@@ -407,148 +407,127 @@ html.dark #toast.toast-save{background:rgba(16,185,129,.1);border-color:rgba(16,
 .tbl-cell.hl{background:var(--abl);border-color:var(--blue)}
 </style>
 <!-- ══ Firebase SDK ══ -->
-<script type="module">
-import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,setDoc,getDoc,enableIndexedDbPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getStorage,ref,uploadString,getDownloadURL}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+<script>
+(async function(){
+  try{
+    const FB = {
+      apiKey:            "AIzaSyB3tPHPnv961f2PhxVEZb_g2g6mdKxVbsQ",
+      authDomain:        "plabstadiumguide.firebaseapp.com",
+      projectId:         "plabstadiumguide",
+      storageBucket:     "plabstadiumguide.firebasestorage.app",
+      messagingSenderId: "347837323084",
+      appId:             "1:347837323084:web:09d157b9b705f5f5d721e9"
+    };
 
-const FB = {
-  apiKey:            "AIzaSyB3tPHPnv961f2PhxVEZb_g2g6mdKxVbsQ",
-  authDomain:        "plabstadiumguide.firebaseapp.com",
-  projectId:         "plabstadiumguide",
-  storageBucket:     "plabstadiumguide.firebasestorage.app",
-  messagingSenderId: "347837323084",
-  appId:             "1:347837323084:web:09d157b9b705f5f5d721e9"
-};
+    const {initializeApp}        = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {getFirestore,doc,setDoc,getDoc,enableIndexedDbPersistence} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const {getStorage,ref,uploadString,getDownloadURL} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
 
-const configured = FB.apiKey && FB.apiKey.length > 0;
+    const app     = initializeApp(FB);
+    const db      = getFirestore(app);
+    const storage = getStorage(app);
+    const REF     = ()=>doc(db,'plab','siteData');
 
-if(configured){
-  const app=initializeApp(FB);
-  const db=getFirestore(app);
-  const storage=getStorage(app);
-  const REF=()=>doc(db,'plab','siteData');
+    enableIndexedDbPersistence(db).catch(e=>{
+      if(e.code!=='failed-precondition'&&e.code!=='unimplemented')
+        console.warn('Firestore persistence 오류',e);
+    });
 
-  /* ── 오프라인 캐시 (IndexedDB) ── */
-  enableIndexedDbPersistence(db).catch(e=>{
-    if(e.code!=='failed-precondition'&&e.code!=='unimplemented')
-      console.warn('Firestore persistence 오류',e);
-  });
+    async function withRetry(fn,maxTry=4,baseMs=800){
+      for(let i=0;i<maxTry;i++){
+        try{return await fn();}
+        catch(e){
+          if(i===maxTry-1)throw e;
+          await new Promise(r=>setTimeout(r,baseMs*(1<<i)));
+        }
+      }
+    }
 
-  /* ── 지수 백오프 재시도 ── */
-  async function withRetry(fn,maxTry=4,baseMs=800){
-    for(let i=0;i<maxTry;i++){
-      try{return await fn();}
+    /* ── 이미지 Storage 업로드 ── */
+    window._fbUploadImage=async(dataUrl,path)=>{
+      const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('upload timeout')),20000));
+      try{
+        return await Promise.race([
+          withRetry(async()=>{
+            const r=ref(storage,path);
+            await uploadString(r,dataUrl,'data_url');
+            return await getDownloadURL(r);
+          },2,500),
+          timeout
+        ]);
+      }catch(e){
+        console.error('이미지 업로드 오류',e);
+        const code=e.code||''; const msg=e.message||'';
+        let reason='';
+        if(msg.includes('upload timeout')){
+          reason='이미지 업로드 시간 초과 (20초)\n→ 이미지 파일 크기를 줄이거나 네트워크를 확인해 주세요.';
+        } else if(code.includes('unauthorized')||code.includes('permission')||msg.includes('403')||msg.includes('unauthorized')){
+          reason='Firebase Storage 권한 오류\n→ Firebase Console → Storage → Rules에서 allow write: if true; 로 변경해 주세요.';
+        } else if(code.includes('quota')||msg.includes('quota')){
+          reason='Firebase Storage 용량 한도 초과\n→ Firebase Console에서 Storage 사용량을 확인해 주세요.';
+        } else if(!navigator.onLine){
+          reason='인터넷 연결이 없습니다.\n→ 네트워크 연결 후 다시 시도해 주세요.';
+        } else {
+          reason='이미지 업로드 실패\n오류: '+(msg||code||'알 수 없는 오류')+(msg||code||'알 수 없는 오류');
+        }
+        window._lastImgUploadError=reason;
+        return null;
+      }
+    };
+
+    /* ── Firestore 저장 ── */
+    let _pendingSave=null;
+    const _rawSave=async(json)=>{
+      await withRetry(()=>setDoc(REF(),{data:json,savedAt:new Date().toISOString()}));
+    };
+    window._fbSave=async(json)=>{
+      if(!navigator.onLine){_pendingSave=json;window._lastSaveError='오프라인 상태입니다.';return false;}
+      try{await _rawSave(json);_pendingSave=null;window._lastSaveError='';return true;}
       catch(e){
-        if(i===maxTry-1)throw e;
-        await new Promise(r=>setTimeout(r,baseMs*(1<<i)));
+        console.error('Firebase 저장 오류',e);
+        _pendingSave=json;
+        const code=e.code||''; const msg=e.message||'';
+        if(code.includes('permission')||msg.includes('Missing or insufficient permissions')){
+          window._lastSaveError='Firebase 권한 오류\n→ Firestore Rules에서 write 권한을 확인해 주세요.';
+        } else if(msg.includes('exceed')||msg.includes('maximum')){
+          window._lastSaveError='저장 데이터 초과 (Firestore 1MB 한도)\n→ 이미지를 Storage에 업로드 후 저장하세요.';
+        } else {
+          window._lastSaveError='저장 실패: '+(msg||code||'알 수 없는 오류');
+        }
+        return false;
       }
-    }
+    };
+
+    /* ── Firestore 로드 ── */
+    window._fbLoad=async()=>{
+      try{
+        const snap=await withRetry(()=>getDoc(REF()));
+        return snap.exists()?snap.data().data:null;
+      }catch(e){console.error('Firebase 로드 오류',e);return null;}
+    };
+
+    /* ── 온라인 복귀 시 재저장 ── */
+    window.addEventListener('online',async()=>{
+      if(window._fbBarSet)window._fbBarSet('load');
+      if(_pendingSave){
+        const ok=await window._fbSave(_pendingSave);
+        if(window._fbBarSet)window._fbBarSet(ok?'ok':'err');
+      }else{
+        if(window._fbBarSet)window._fbBarSet('live');
+      }
+    });
+    window.addEventListener('offline',()=>{
+      if(window._fbBarSet)window._fbBarSet('err');
+    });
+
+    console.log('✅ Firebase 초기화 완료');
+
+  }catch(err){
+    console.error('Firebase 초기화 실패',err);
+    window._fbSave=async()=>false;
+    window._fbLoad=async()=>null;
   }
-
-  /* ── 이미지 Storage 업로드 ── */
-  window._fbUploadImage=async(dataUrl,path)=>{
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('upload timeout')),20000));
-    try{
-      return await Promise.race([
-        withRetry(async()=>{
-          const r=ref(storage,path);
-          await uploadString(r,dataUrl,'data_url');
-          return await getDownloadURL(r);
-        },2,500),
-        timeout
-      ]);
-    }catch(e){
-      console.error('이미지 업로드 오류',e);
-      // 에러 원인 분류 → 사용자 안내
-      const code=e.code||'';
-      const msg=e.message||'';
-      let reason='';
-      if(msg.includes('upload timeout')){
-        reason='이미지 업로드 시간 초과 (20초)
-→ 이미지 파일 크기를 줄이거나 네트워크를 확인해 주세요.';
-      } else if(code.includes('unauthorized')||code.includes('permission')||msg.includes('403')||msg.includes('unauthorized')){
-        reason='Firebase Storage 권한이 없습니다
-→ Firebase Console → Storage → Rules에서
-  allow write: if true; 로 변경해 주세요.';
-      } else if(code.includes('canceled')||code.includes('cancelled')){
-        reason='업로드가 취소됐습니다.';
-      } else if(code.includes('quota')||msg.includes('quota')){
-        reason='Firebase Storage 용량 한도를 초과했습니다
-→ Firebase Console에서 Storage 사용량을 확인해 주세요.';
-      } else if(code.includes('retry-limit')||msg.includes('retry')){
-        reason='네트워크 오류로 업로드에 실패했습니다
-→ 인터넷 연결을 확인해 주세요.';
-      } else if(!navigator.onLine){
-        reason='인터넷 연결이 없습니다
-→ 네트워크 연결 후 다시 시도해 주세요.';
-      } else if(code.includes('cors')||msg.includes('CORS')){
-        reason='CORS 오류: 도메인이 허용되지 않았습니다
-→ Firebase Console → Storage → 규칙을 확인해 주세요.';
-      } else {
-        reason=`이미지 업로드 실패
-오류: ${msg||code||'알 수 없는 오류'}`;
-      }
-      window._lastImgUploadError=reason;
-      return null;
-    }
-  };
-
-  /* ── Firestore 저장 (재시도) ── */
-  let _pendingSave=null;
-  const _rawSave=async(json)=>{
-    await withRetry(()=>setDoc(REF(),{data:json,savedAt:new Date().toISOString()}));
-  };
-  window._fbSave=async(json)=>{
-    if(!navigator.onLine){_pendingSave=json;window._lastSaveError='오프라인 상태입니다. 인터넷 연결을 확인해 주세요.';return false;}
-    try{await _rawSave(json);_pendingSave=null;window._lastSaveError='';return true;}
-    catch(e){
-      console.error('Firebase 저장 오류',e);
-      _pendingSave=json;
-      const code=e.code||'';const msg=e.message||'';
-      if(code.includes('permission')||code.includes('unauthorized')||msg.includes('Missing or insufficient permissions')){
-        window._lastSaveError='Firebase 권한 오류
-→ Firestore Rules에서 write 권한을 확인해 주세요.';
-      } else if(msg.includes('document') && msg.includes('exceed')||msg.includes('maximum')){
-        window._lastSaveError='저장 데이터가 너무 큽니다 (Firestore 1MB 초과)
-→ 이미지를 Firebase Storage에 업로드한 뒤 저장하세요.';
-      } else if(!navigator.onLine){
-        window._lastSaveError='오프라인 상태입니다.';
-      } else {
-        window._lastSaveError=`저장 실패: ${msg||code||'알 수 없는 오류'}`;
-      }
-      return false;
-    }
-  };
-
-  /* ── Firestore 로드 (재시도) ── */
-  window._fbLoad=async()=>{
-    try{
-      const snap=await withRetry(()=>getDoc(REF()));
-      return snap.exists()?snap.data().data:null;
-    }catch(e){console.error('Firebase 로드 오류',e);return null;}
-  };
-
-  /* ── 온라인 복귀 시 자동 재저장 ── */
-  window.addEventListener('online',async()=>{
-    if(window._fbBarSet)window._fbBarSet('load');
-    if(_pendingSave){
-      const ok=await window._fbSave(_pendingSave);
-      if(window._fbBarSet)window._fbBarSet(ok?'ok':'err');
-    }else{
-      if(window._fbBarSet)window._fbBarSet('live');
-    }
-  });
-  window.addEventListener('offline',()=>{
-    if(window._fbBarSet)window._fbBarSet('err');
-    console.warn('📴 오프라인 — 로컬 저장 중');
-  });
-
-}else{
-  window._fbSave=async()=>false;
-  window._fbLoad=async()=>null;
-  console.warn('⚠️ Firebase 미설정 — 로컬 저장만 됩니다.');
-}
+})();
 </script>
 </head>
 <body>
@@ -1411,11 +1390,11 @@ function _fbBarSet(state){
 
 /* ── 시작 시 Firebase 데이터 로드 ── */
 async function _fbStartLoad(){
-  // type="module" 스크립트 로드 대기 (최대 3초)
+  // Firebase 초기화 대기 (최대 5초)
   if(!window._fbLoad){
     _fbBarSet('load');
     let waited=0;
-    while(!window._fbLoad && waited<3000){
+    while(!window._fbLoad && waited<5000){
       await new Promise(r=>setTimeout(r,100));
       waited+=100;
     }
