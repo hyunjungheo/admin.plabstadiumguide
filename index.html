@@ -560,7 +560,7 @@ if(configured){
       </div>
       <div class="auser" onclick="doLogout()">
         <div class="aava">A</div>
-        <div><div class="auname">관리자</div><div class="auemail" id="aEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e687828b8f88a6968a8784c88d94">[email&#160;protected]</a></div></div>
+        <div><div class="auname">관리자</div><div class="auemail" id="aEmail">admin@plab.kr</div></div>
       </div>
     </div>
   </aside>
@@ -649,7 +649,7 @@ if(configured){
   <button class="btn btn-gh bxs" onclick="closeImgResize()">✕</button>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 /* ── 어드민 테마 ── */
 function initAdminTheme(){
   const t=localStorage.getItem('plab_admin_theme')||'light';
@@ -1350,7 +1350,7 @@ async function _fbStartLoad(){
 /* ════════════════════════════════════
    AUTH
 ════════════════════════════════════ */
-const _ADMIN_PW = 'plab0104';
+const _ADMIN_PW='plab0104';
 function doLogin(){
   const pw=document.getElementById('lpw').value;
   if(pw===_ADMIN_PW){
@@ -2278,7 +2278,6 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
     const [dragCat,dragSub64]=_dragId.split('__');
     const [tgtCat,tgtSub64]=targetId.split('__');
     if(dragCat!==tgtCat||dragSub64===tgtSub64)return;
-    // base64 디코딩 → 원래 한글 이름 복원
     const dragSub=decodeURIComponent(escape(atob(dragSub64)));
     const tgtSub=decodeURIComponent(escape(atob(tgtSub64)));
     if(!S.subcategories)S.subcategories={};
@@ -2338,20 +2337,15 @@ function initCatMouseDrag(listEl){
     if(!card) return;
     var fromId = card.dataset.catid;
 
-    // 드롭 대상 추적 변수 (indicator와 분리)
-    var bestCard = null;
-    var bestIsTop = true;
-    var moved = false;
-    var startY = e.clientY;
+    var bestCard = null, bestIsTop = true;
+    var moved = false, startY = e.clientY;
 
-    // 파란 라인 인디케이터
     var line = document.createElement('div');
     line.style.cssText = 'position:fixed;height:3px;background:#2563eb;border-radius:2px;pointer-events:none;z-index:9999;display:none';
     document.body.appendChild(line);
 
-    // 드래그 고스트
     var ghost = document.createElement('div');
-    ghost.style.cssText = 'position:fixed;z-index:9998;pointer-events:none;background:#fff;border:2px solid #2563eb;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);opacity:.0;padding:10px 16px;font-size:14px;font-weight:600;color:#111827;white-space:nowrap;transition:opacity .1s';
+    ghost.style.cssText = 'position:fixed;z-index:9998;pointer-events:none;background:#fff;border:2px solid #2563eb;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);opacity:0;padding:10px 16px;font-size:14px;font-weight:600;color:#111827;white-space:nowrap;transition:opacity .1s';
     ghost.textContent = '⠿ ' + (card.querySelector('.cat-hd-name') ? card.querySelector('.cat-hd-name').textContent.trim() : '카테고리');
     document.body.appendChild(ghost);
 
@@ -2362,11 +2356,9 @@ function initCatMouseDrag(listEl){
         ghost.style.opacity = '.88';
         card.style.opacity = '0.4';
       }
-
       ghost.style.left = (mv.clientX + 14) + 'px';
       ghost.style.top  = (mv.clientY - 16) + 'px';
 
-      // 가장 가까운 다른 cat-card
       var cards = Array.from(listEl.querySelectorAll('.cat-card'));
       var best = null, bestDist = 99999, bestTop = true;
       cards.forEach(function(c){
@@ -2374,62 +2366,38 @@ function initCatMouseDrag(listEl){
         var r = c.getBoundingClientRect();
         var mid = r.top + r.height / 2;
         var dist = Math.abs(mv.clientY - mid);
-        if(dist < bestDist){
-          bestDist = dist;
-          best = c;
-          bestTop = mv.clientY < mid;
-        }
+        if(dist < bestDist){ bestDist=dist; best=c; bestTop=mv.clientY<mid; }
       });
-
-      bestCard  = best;
-      bestIsTop = bestTop;
-
+      bestCard = best; bestIsTop = bestTop;
       if(best){
         var r = best.getBoundingClientRect();
         line.style.display = 'block';
-        line.style.top    = (bestTop ? r.top - 2 : r.bottom - 1) + 'px';
-        line.style.left   = r.left + 'px';
-        line.style.width  = r.width + 'px';
-      } else {
-        line.style.display = 'none';
-      }
+        line.style.top   = (bestTop ? r.top-2 : r.bottom-1) + 'px';
+        line.style.left  = r.left + 'px';
+        line.style.width = r.width + 'px';
+      } else { line.style.display = 'none'; }
     }
 
     function onUp(){
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
-
-      // 변수에서 먼저 읽고 DOM 정리
-      var targetCard = bestCard;
-      var isTop      = bestIsTop;
-
-      ghost.remove();
-      line.remove();
-      card.style.opacity = '';
-
+      var targetCard = bestCard, isTop = bestIsTop;
+      ghost.remove(); line.remove(); card.style.opacity = '';
       if(!moved || !targetCard) return;
-
       var toId = targetCard.dataset.catid;
       if(!toId || toId === fromId) return;
-
-      // 순서 변경
-      var arr = S.categories.slice().sort(function(a, b){
-        return (a.order || 0) - (b.order || 0);
-      });
-      var fi = arr.findIndex(function(c){ return c.id === fromId; });
-      var ti = arr.findIndex(function(c){ return c.id === toId; });
-      if(fi < 0 || ti < 0) return;
-
-      var item = arr.splice(fi, 1)[0];
-      var insertAt = isTop ? ti : ti + 1;
-      if(fi < ti) insertAt = Math.max(0, insertAt - 1);
+      var arr = S.categories.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+      var fi = arr.findIndex(function(c){ return c.id===fromId; });
+      var ti = arr.findIndex(function(c){ return c.id===toId; });
+      if(fi<0||ti<0) return;
+      var item = arr.splice(fi,1)[0];
+      var insertAt = isTop ? ti : ti+1;
+      if(fi < ti) insertAt = Math.max(0, insertAt-1);
       arr.splice(insertAt, 0, item);
-      arr.forEach(function(c, idx){ c.order = idx; });
+      arr.forEach(function(c,i){ c.order=i; });
       S.categories = arr;
-      save();
-      rPostsFiltered('guide');
+      save(); rPostsFiltered('guide');
     }
-
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
@@ -3537,7 +3505,7 @@ function toggleRel(id,el){
   renderRelSel();
 }
 
-async async function savePost(){
+async function savePost(){
   const title=document.getElementById('peTitle')?.value.trim();
   if(!title){toast('⚠️ 제목을 입력하세요');return;}
   // 본문 내 base64 이미지 Storage 업로드
@@ -3863,4 +3831,12 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
   toastSave('저장 완료!');
-  if
+  // finally()가 먼저 실행되어 버튼 복원 후 페이지 전환
+  if(typeof onConfirm==='function') setTimeout(onConfirm, 50);
+}
+
+/* ── UTILS ── */
+function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
