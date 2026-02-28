@@ -448,12 +448,16 @@ if(configured){
 
   /* ── 이미지 Storage 업로드 ── */
   window._fbUploadImage=async(dataUrl,path)=>{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('upload timeout')),20000));
     try{
-      return await withRetry(async()=>{
-        const r=ref(storage,path);
-        await uploadString(r,dataUrl,'data_url');
-        return await getDownloadURL(r);
-      });
+      return await Promise.race([
+        withRetry(async()=>{
+          const r=ref(storage,path);
+          await uploadString(r,dataUrl,'data_url');
+          return await getDownloadURL(r);
+        },2,500),
+        timeout
+      ]);
     }catch(e){console.error('이미지 업로드 오류',e);return null;}
   };
 
@@ -560,7 +564,7 @@ if(configured){
       </div>
       <div class="auser" onclick="doLogout()">
         <div class="aava">A</div>
-        <div><div class="auname">관리자</div><div class="auemail" id="aEmail">admin@plab.kr</div></div>
+        <div><div class="auname">관리자</div><div class="auemail" id="aEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="82e3e6efebecc2f2eee3e0ace9f0">[email&#160;protected]</a></div></div>
       </div>
     </div>
   </aside>
@@ -649,7 +653,7 @@ if(configured){
   <button class="btn btn-gh bxs" onclick="closeImgResize()">✕</button>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ── 어드민 테마 ── */
 function initAdminTheme(){
   const t=localStorage.getItem('plab_admin_theme')||'light';
@@ -3474,44 +3478,59 @@ function toggleRel(id,el){
 async function savePost(){
   const title=document.getElementById('peTitle')?.value.trim();
   if(!title){toast('⚠️ 제목을 입력하세요');return;}
-  // 본문 내 base64 이미지 Storage 업로드
-  const rawContent=document.getElementById('rteBody')?.innerHTML||'';
-  const hasBase64=/src="data:/.test(rawContent);
-  if(hasBase64) toast('이미지 업로드 중…');
-  const content=await uploadRteImages(rawContent);
-  // _editId로 기존 게시글 참조
-  const existing=_editId?S.posts.find(x=>x.id===_editId):null;
-  const d={
-    id:_editId||'p'+Date.now(),
-    title,
-    postType:_curPostType==='service'?'service':'guide',
-    category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
-    serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
-    subCat:(document.getElementById('peSubCat')?.value||'').trim(),
-    emoji:existing?.emoji||'📄',
-    excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
-    author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
-    status:document.getElementById('peStat')?.value||'published',
-    content,
-    relatedPosts:_relIds.length?[..._relIds]:undefined,
-    subCnt:3,
-    date:existing?.date||new Date().toISOString(),
-    updatedAt:new Date().toISOString(),
-    views:existing?.views||0,
-  };
-  if(_editId){const i=S.posts.findIndex(x=>x.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
-  else S.posts.push(d);
-  // sp-s* 게시글 저장 시 servicePages도 동시 업데이트 → 홈페이지 반영
-  if(d.serviceId&&d.id.startsWith('sp-')){
-    if(!S.servicePages)S.servicePages={};
-    S.servicePages[d.serviceId]=content;
+  try{
+    // 본문 내 base64 이미지 Storage 업로드
+    const rawContent=document.getElementById('rteBody')?.innerHTML||'';
+    const hasBase64=/src="data:/.test(rawContent);
+    let content=rawContent;
+    if(hasBase64){
+      toast('이미지 업로드 중… (최대 20초)');
+      try{
+        content=await uploadRteImages(rawContent);
+        if(/src="data:/.test(content)) toast('⚠️ 이미지 업로드 실패 — 텍스트만 저장됩니다');
+      }catch(e){
+        console.error('이미지 처리 오류',e);
+        content=rawContent;
+        toast('⚠️ 이미지 처리 오류');
+      }
+    }
+    // _editId로 기존 게시글 참조
+    const existing=_editId?S.posts.find(x=>x.id===_editId):null;
+    const d={
+      id:_editId||'p'+Date.now(),
+      title,
+      postType:_curPostType==='service'?'service':'guide',
+      category:_curPostType!=='service'?(document.getElementById('peCat')?.value||'gc1'):'',
+      serviceId:_curPostType==='service'?(document.getElementById('peSvc')?.value||''):'',
+      subCat:(document.getElementById('peSubCat')?.value||'').trim(),
+      emoji:existing?.emoji||'📄',
+      excerpt:document.getElementById('peExcerpt')?.value.trim()||'',
+      author:document.getElementById('peAuthor')?.value.trim()||'플랩팀',
+      status:document.getElementById('peStat')?.value||'published',
+      content,
+      relatedPosts:_relIds.length?[..._relIds]:undefined,
+      subCnt:3,
+      date:existing?.date||new Date().toISOString(),
+      updatedAt:new Date().toISOString(),
+      views:existing?.views||0,
+    };
+    if(_editId){const i=S.posts.findIndex(x=>x.id===_editId);if(i>=0)S.posts[i]=d;else S.posts.push(d);}
+    else S.posts.push(d);
+    if(d.serviceId&&d.id.startsWith('sp-')){
+      if(!S.servicePages)S.servicePages={};
+      S.servicePages[d.serviceId]=content;
+    }
+    await save();
+    const label=_curPostType==='service'?'서비스 게시글':'가이드 게시글';
+    saveConfirm(`${label}이 저장됐습니다`, ()=>{
+      if(_curPostType==='service') rPostsFiltered('service');
+      else rPostsFiltered('guide');
+    });
+  }catch(e){
+    console.error('savePost 오류',e);
+    toast('❌ 저장 중 오류가 발생했습니다: '+e.message);
+    // finally()가 버튼을 복원함
   }
-  await save();
-  const label=_curPostType==='service'?'서비스 게시글':'가이드 게시글';
-  saveConfirm(`${label}이 저장됐습니다`, ()=>{
-    if(_curPostType==='service') rPostsFiltered('service');
-    else rPostsFiltered('guide');
-  });
 }
 function delPost(id){if(!confirm('삭제?'))return;S.posts=S.posts.filter(p=>p.id!==id);save();rPostsFiltered(_curPostType||'guide');toast('삭제됨');}
 
@@ -3797,11 +3816,4 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
   toastSave('저장 완료!');
-  if(typeof onConfirm==='function') setTimeout(onConfirm,50);
-}
-
-/* ── UTILS ── */
-function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-</script>
-</body>
-</html>
+  if(typeof onCon
