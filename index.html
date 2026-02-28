@@ -458,7 +458,40 @@ if(configured){
         },2,500),
         timeout
       ]);
-    }catch(e){console.error('이미지 업로드 오류',e);return null;}
+    }catch(e){
+      console.error('이미지 업로드 오류',e);
+      // 에러 원인 분류 → 사용자 안내
+      const code=e.code||'';
+      const msg=e.message||'';
+      let reason='';
+      if(msg.includes('upload timeout')){
+        reason='이미지 업로드 시간 초과 (20초)
+→ 이미지 파일 크기를 줄이거나 네트워크를 확인해 주세요.';
+      } else if(code.includes('unauthorized')||code.includes('permission')||msg.includes('403')||msg.includes('unauthorized')){
+        reason='Firebase Storage 권한이 없습니다
+→ Firebase Console → Storage → Rules에서
+  allow write: if true; 로 변경해 주세요.';
+      } else if(code.includes('canceled')||code.includes('cancelled')){
+        reason='업로드가 취소됐습니다.';
+      } else if(code.includes('quota')||msg.includes('quota')){
+        reason='Firebase Storage 용량 한도를 초과했습니다
+→ Firebase Console에서 Storage 사용량을 확인해 주세요.';
+      } else if(code.includes('retry-limit')||msg.includes('retry')){
+        reason='네트워크 오류로 업로드에 실패했습니다
+→ 인터넷 연결을 확인해 주세요.';
+      } else if(!navigator.onLine){
+        reason='인터넷 연결이 없습니다
+→ 네트워크 연결 후 다시 시도해 주세요.';
+      } else if(code.includes('cors')||msg.includes('CORS')){
+        reason='CORS 오류: 도메인이 허용되지 않았습니다
+→ Firebase Console → Storage → 규칙을 확인해 주세요.';
+      } else {
+        reason=`이미지 업로드 실패
+오류: ${msg||code||'알 수 없는 오류'}`;
+      }
+      window._lastImgUploadError=reason;
+      return null;
+    }
   };
 
   /* ── Firestore 저장 (재시도) ── */
@@ -1262,7 +1295,17 @@ let S = _raw ? {
   postOrder:{...(_raw.postOrder||{})}
 } : JSON.parse(JSON.stringify(DEF));
 const save = async()=>{
-  const json=JSON.stringify(S);
+  let json=JSON.stringify(S);
+  /* base64 이미지 감지 → 제거 (Firestore 1MB 보호) */
+  if(json.includes('"data:image') && json.length>900000){
+    console.warn('⚠️ base64 감지 — 저장 전 제거');
+    const cleaned=JSON.parse(json);
+    if(cleaned.posts)cleaned.posts=cleaned.posts.map(p=>{
+      if(p.content&&p.content.includes('data:image'))p.content=p.content.replace(/src="data:image[^"]*"/g,'src="" data-removed="1"');
+      return p;
+    });
+    json=JSON.stringify(cleaned);
+  }
   /* 로컬 백업 */
   try{localStorage.setItem('plab_v5',json);}catch(e){}
   /* Firebase 저장 */
@@ -1302,10 +1345,21 @@ async function uploadRteImages(html){
   const parser=new DOMParser();
   const doc2=parser.parseFromString(html,'text/html');
   const imgs=[...doc2.querySelectorAll('img[src^="data:"]')];
+  let uploadFailReason='';
   await Promise.all(imgs.map(async img=>{
+    window._lastImgUploadError='';
     const url=await uploadImg(img.src,'posts');
-    if(url) img.src=url;
+    if(url&&!url.startsWith('data:')){
+      img.src=url;
+    } else {
+      if(window._lastImgUploadError) uploadFailReason=window._lastImgUploadError;
+      img.setAttribute('data-upload-failed','1');
+      img.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      img.style.cssText='width:100%;min-height:60px;background:#fee2e2;border:2px dashed #f87171;opacity:.5';
+      img.title='이미지 업로드 실패';
+    }
   }));
+  if(uploadFailReason) window._pendingImgFailReason=uploadFailReason;
   return doc2.body.innerHTML;
 }
 
@@ -3483,10 +3537,24 @@ async function savePost(){
       toast('이미지 업로드 중… (최대 20초)');
       try{
         content=await uploadRteImages(rawContent);
-        if(/src="data:/.test(content)) toast('⚠️ 이미지 업로드 실패 — 텍스트만 저장됩니다');
+        if(/src="data:(?!image\/gif)/.test(content)){
+          const reason=window._pendingImgFailReason||'이미지 업로드에 실패했습니다.';
+          window._pendingImgFailReason='';
+          // 팝업으로 자세한 안내
+          const lines=reason.split('\n');
+          const box=document.createElement('div');
+          box.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:16px 20px;border-radius:10px;z-index:9999;max-width:380px;font-size:13px;line-height:1.8;box-shadow:0 8px 30px rgba(0,0,0,.3);white-space:pre-line';
+          box.textContent='⚠️ 이미지 저장 불가\n\n'+reason;
+          const close=document.createElement('button');
+          close.textContent='확인';
+          close.style.cssText='display:block;margin-top:12px;padding:6px 20px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;width:100%';
+          close.onclick=()=>box.remove();
+          box.appendChild(close);
+          document.body.appendChild(box);
+        }
       }catch(e){
         console.error('이미지 처리 오류',e);
-        content=rawContent;
+        content=rawContent.replace(/src="data:image[^"]*"/g,'src="" data-removed="1"');
         toast('⚠️ 이미지 처리 오류');
       }
     }
