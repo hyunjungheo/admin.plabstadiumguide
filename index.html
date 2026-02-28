@@ -1356,7 +1356,7 @@ function doLogin(){
   if(pw===_ADMIN_PW){
     document.getElementById('loginWrap').style.display='none';
     document.getElementById('adminWrap').classList.add('on');
-    document.getElementById('aEmail').textContent=S.settings.adminEmail||'관리자';
+    document.getElementById('aEmail').textContent='관리자';
     pg('dashboard');
     _fbStartLoad();
   } else {
@@ -1694,7 +1694,7 @@ function rBanner(){
       <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.title}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.date}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.gallery?.length?`📷 ${u.gallery.length}장`:'없음'}</td>
-      <td><div style="display:flex;gap:5px"><button class="btn btn-gh bxs" onclick="editUpd('${u.id}')">편집</button><button class="btn btn-rd bxs" onclick="delUpd('${u.id}')">삭제</button></div></td>
+      <td><div style="display:flex;gap:5px"><button class="ios-btn-sm ios-btn-gray" onclick="editUpd('${u.id}')">편집</button><button class="ios-btn-sm ios-btn-red" onclick="delUpd('${u.id}')">삭제</button></div></td>
     </tr>`).join('');
   document.getElementById('mainBody').innerHTML=`
   <div class="panel">
@@ -2325,81 +2325,51 @@ function dragDrop(e, type, targetId, targetCat, targetSub){
 
 /* ── 카테고리 드래그 (mousedown/mousemove/mouseup) ── */
 function initCatMouseDrag(listEl){
-  if(!listEl || listEl._catDragBound) return;
-  listEl._catDragBound = true;
-
-  listEl.addEventListener('mousedown', function(e){
-    var grip = e.target.closest('.cat-grip');
-    if(!grip) return;
-    e.preventDefault(); e.stopPropagation();
-
-    var card   = grip.closest('.cat-card');
-    if(!card) return;
-    var fromId = card.dataset.catid;
-
-    var bestCard = null, bestIsTop = true;
-    var moved = false, startY = e.clientY;
-
-    var line = document.createElement('div');
-    line.style.cssText = 'position:fixed;height:3px;background:#2563eb;border-radius:2px;pointer-events:none;z-index:9999;display:none';
+  if(!listEl||listEl._catDragBound)return;
+  listEl._catDragBound=true;
+  listEl.addEventListener('mousedown',function(e){
+    var grip=e.target.closest('.cat-grip');
+    if(!grip)return;
+    e.preventDefault();e.stopPropagation();
+    var card=grip.closest('.cat-card');
+    if(!card)return;
+    var fromId=card.dataset.catid;
+    var bestCard=null,bestIsTop=true,moved=false,startY=e.clientY;
+    var line=document.createElement('div');
+    line.style.cssText='position:fixed;height:3px;background:#2563eb;border-radius:2px;pointer-events:none;z-index:9999;display:none';
     document.body.appendChild(line);
-
-    var ghost = document.createElement('div');
-    ghost.style.cssText = 'position:fixed;z-index:9998;pointer-events:none;background:#fff;border:2px solid #2563eb;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);opacity:0;padding:10px 16px;font-size:14px;font-weight:600;color:#111827;white-space:nowrap;transition:opacity .1s';
-    ghost.textContent = '⠿ ' + (card.querySelector('.cat-hd-name') ? card.querySelector('.cat-hd-name').textContent.trim() : '카테고리');
+    var ghost=document.createElement('div');
+    ghost.style.cssText='position:fixed;z-index:9998;pointer-events:none;background:#fff;border:2px solid #2563eb;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);opacity:0;padding:10px 16px;font-size:14px;font-weight:600;color:#111827;white-space:nowrap;transition:opacity .1s';
+    ghost.textContent='⠿ '+(card.querySelector('.cat-hd-name')?card.querySelector('.cat-hd-name').textContent.trim():'카테고리');
     document.body.appendChild(ghost);
-
     function onMove(mv){
-      if(!moved){
-        if(Math.abs(mv.clientY - startY) < 6) return;
-        moved = true;
-        ghost.style.opacity = '.88';
-        card.style.opacity = '0.4';
-      }
-      ghost.style.left = (mv.clientX + 14) + 'px';
-      ghost.style.top  = (mv.clientY - 16) + 'px';
-
-      var cards = Array.from(listEl.querySelectorAll('.cat-card'));
-      var best = null, bestDist = 99999, bestTop = true;
-      cards.forEach(function(c){
-        if(c === card) return;
-        var r = c.getBoundingClientRect();
-        var mid = r.top + r.height / 2;
-        var dist = Math.abs(mv.clientY - mid);
-        if(dist < bestDist){ bestDist=dist; best=c; bestTop=mv.clientY<mid; }
-      });
-      bestCard = best; bestIsTop = bestTop;
-      if(best){
-        var r = best.getBoundingClientRect();
-        line.style.display = 'block';
-        line.style.top   = (bestTop ? r.top-2 : r.bottom-1) + 'px';
-        line.style.left  = r.left + 'px';
-        line.style.width = r.width + 'px';
-      } else { line.style.display = 'none'; }
+      if(!moved){if(Math.abs(mv.clientY-startY)<6)return;moved=true;ghost.style.opacity='.88';card.style.opacity='0.4';}
+      ghost.style.left=(mv.clientX+14)+'px';ghost.style.top=(mv.clientY-16)+'px';
+      var cards=Array.from(listEl.querySelectorAll('.cat-card'));
+      var best=null,bestDist=99999,bestTop=true;
+      cards.forEach(function(c){if(c===card)return;var r=c.getBoundingClientRect();var mid=r.top+r.height/2;var dist=Math.abs(mv.clientY-mid);if(dist<bestDist){bestDist=dist;best=c;bestTop=mv.clientY<mid;}});
+      bestCard=best;bestIsTop=bestTop;
+      if(best){var r=best.getBoundingClientRect();line.style.display='block';line.style.top=(bestTop?r.top-2:r.bottom-1)+'px';line.style.left=r.left+'px';line.style.width=r.width+'px';}
+      else{line.style.display='none';}
     }
-
     function onUp(){
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      var targetCard = bestCard, isTop = bestIsTop;
-      ghost.remove(); line.remove(); card.style.opacity = '';
-      if(!moved || !targetCard) return;
-      var toId = targetCard.dataset.catid;
-      if(!toId || toId === fromId) return;
-      var arr = S.categories.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
-      var fi = arr.findIndex(function(c){ return c.id===fromId; });
-      var ti = arr.findIndex(function(c){ return c.id===toId; });
-      if(fi<0||ti<0) return;
-      var item = arr.splice(fi,1)[0];
-      var insertAt = isTop ? ti : ti+1;
-      if(fi < ti) insertAt = Math.max(0, insertAt-1);
-      arr.splice(insertAt, 0, item);
-      arr.forEach(function(c,i){ c.order=i; });
-      S.categories = arr;
-      save(); rPostsFiltered('guide');
+      document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);
+      var targetCard=bestCard,isTop=bestIsTop;
+      ghost.remove();line.remove();card.style.opacity='';
+      if(!moved||!targetCard)return;
+      var toId=targetCard.dataset.catid;if(!toId||toId===fromId)return;
+      var arr=S.categories.slice().sort(function(a,b){return(a.order||0)-(b.order||0);});
+      var fi=arr.findIndex(function(c){return c.id===fromId;});
+      var ti=arr.findIndex(function(c){return c.id===toId;});
+      if(fi<0||ti<0)return;
+      var item=arr.splice(fi,1)[0];
+      var insertAt=isTop?ti:ti+1;
+      if(fi<ti)insertAt=Math.max(0,insertAt-1);
+      arr.splice(insertAt,0,item);
+      arr.forEach(function(c,i){c.order=i;});
+      S.categories=arr;save();rPostsFiltered('guide');
     }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
   });
 }
 
@@ -2546,7 +2516,7 @@ function catForm(c){
         <input type="file" id="catHeroImgIn" accept="image/*" style="display:none" onchange="onCatHeroImgSelect(event)">
         <input type="hidden" id="cHeroImg" value="${x(c?.heroImage||'')}">
       </div>
-      <div style="font-size:11.5px;color:var(--am)">가이드 카테고리 페이지 상단에 표시되는 배너 이미지입니다. 미설정 시 기본 그라디언트 배경이 사용됩니다.</div>
+      <div style="font-size:11.5px;color:var(--am)">가이드 카테고리 페이지 상단에 표시되는 배너 이미지입니다. 미설정 시 기본 그라디언트 배경이 사용됩니다.<br><span style="color:var(--abl);font-weight:600">권장 사이즈: 1200×400px</span> (가로로 긴 이미지, JPG/PNG)</div>
     </div>
   </div>`;
 }
@@ -2932,7 +2902,6 @@ function rteInsertCallout(){
   document.execCommand('insertHTML',false,html);
   saveRange();
 }
-
 function pickCalloutEmoji(iconEl){
   const emojis=['💡','⚠️','✅','❌','📌','🔔','💬','ℹ️','🚫','⭐','📝','🎯','💎','🔥','👀','✏️'];
   const existing=document.getElementById('_emojiPicker');
@@ -2942,16 +2911,13 @@ function pickCalloutEmoji(iconEl){
   picker.style.cssText='position:fixed;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:4px;width:196px;box-shadow:0 4px 16px rgba(0,0,0,.14);z-index:9999';
   emojis.forEach(function(e){
     var sp=document.createElement('span');
-    sp.textContent=e;
-    sp.style.cssText='font-size:20px;cursor:pointer;padding:4px;border-radius:4px;line-height:1.2';
-    sp.onmouseover=function(){this.style.background='#f3f4f6';};
-    sp.onmouseout=function(){this.style.background='';};
+    sp.textContent=e;sp.style.cssText='font-size:20px;cursor:pointer;padding:4px;border-radius:4px;line-height:1.2';
+    sp.onmouseover=function(){this.style.background='#f3f4f6';};sp.onmouseout=function(){this.style.background='';};
     sp.onclick=function(){iconEl.textContent=e;picker.remove();};
     picker.appendChild(sp);
   });
   var r=iconEl.getBoundingClientRect();
-  picker.style.top=(r.bottom+4)+'px';
-  picker.style.left=r.left+'px';
+  picker.style.top=(r.bottom+4)+'px';picker.style.left=r.left+'px';
   document.body.appendChild(picker);
   setTimeout(function(){document.addEventListener('click',function rm(){picker.remove();document.removeEventListener('click',rm);});},50);
 }
@@ -3831,8 +3797,7 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
   toastSave('저장 완료!');
-  // finally()가 먼저 실행되어 버튼 복원 후 페이지 전환
-  if(typeof onConfirm==='function') setTimeout(onConfirm, 50);
+  if(typeof onConfirm==='function') setTimeout(onConfirm,50);
 }
 
 /* ── UTILS ── */
