@@ -510,7 +510,7 @@ if(configured){
     <div class="lmark">P</div>
     <h1>플랩 어드민</h1>
     <p>관리자 계정으로 로그인하세요</p>
-    <div class="lerr" id="lerr">비밀번호가 올바르지 않습니다</div>
+    <div class="lerr" id="lerr" style="display:none">비밀번호가 올바르지 않습니다</div>
     <div class="lg"><label class="ll">비밀번호</label><input class="li" id="lpw" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()" autofocus></div>
     <button class="lbtn" onclick="doLogin()">로그인</button>
   </div>
@@ -564,7 +564,7 @@ if(configured){
       </div>
       <div class="auser" onclick="doLogout()">
         <div class="aava">A</div>
-        <div><div class="auname">관리자</div><div class="auemail" id="aEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="82e3e6efebecc2f2eee3e0ace9f0">[email&#160;protected]</a></div></div>
+        <div><div class="auname">관리자</div><div class="auemail" id="aEmail">admin@plab.kr</div></div>
       </div>
     </div>
   </aside>
@@ -653,7 +653,7 @@ if(configured){
   <button class="btn btn-gh bxs" onclick="closeImgResize()">✕</button>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 /* ── 어드민 테마 ── */
 function initAdminTheme(){
   const t=localStorage.getItem('plab_admin_theme')||'light';
@@ -2335,8 +2335,7 @@ function initCatMouseDrag(listEl){
     var grip=e.target.closest('.cat-grip');
     if(!grip)return;
     e.preventDefault();e.stopPropagation();
-    var card=grip.closest('.cat-card');
-    if(!card)return;
+    var card=grip.closest('.cat-card');if(!card)return;
     var fromId=card.dataset.catid;
     var bestCard=null,bestIsTop=true,moved=false,startY=e.clientY;
     var line=document.createElement('div');
@@ -2354,7 +2353,7 @@ function initCatMouseDrag(listEl){
       cards.forEach(function(c){if(c===card)return;var r=c.getBoundingClientRect();var mid=r.top+r.height/2;var dist=Math.abs(mv.clientY-mid);if(dist<bestDist){bestDist=dist;best=c;bestTop=mv.clientY<mid;}});
       bestCard=best;bestIsTop=bestTop;
       if(best){var r=best.getBoundingClientRect();line.style.display='block';line.style.top=(bestTop?r.top-2:r.bottom-1)+'px';line.style.left=r.left+'px';line.style.width=r.width+'px';}
-      else{line.style.display='none';}
+      else line.style.display='none';
     }
     function onUp(){
       document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);
@@ -2367,8 +2366,7 @@ function initCatMouseDrag(listEl){
       var ti=arr.findIndex(function(c){return c.id===toId;});
       if(fi<0||ti<0)return;
       var item=arr.splice(fi,1)[0];
-      var insertAt=isTop?ti:ti+1;
-      if(fi<ti)insertAt=Math.max(0,insertAt-1);
+      var insertAt=isTop?ti:ti+1;if(fi<ti)insertAt=Math.max(0,insertAt-1);
       arr.splice(insertAt,0,item);
       arr.forEach(function(c,i){c.order=i;});
       S.categories=arr;save();rPostsFiltered('guide');
@@ -2916,8 +2914,7 @@ function pickCalloutEmoji(iconEl){
   emojis.forEach(function(e){
     var sp=document.createElement('span');
     sp.textContent=e;sp.style.cssText='font-size:20px;cursor:pointer;padding:4px;border-radius:4px;line-height:1.2';
-    sp.onmouseover=function(){this.style.background='#f3f4f6';};sp.onmouseout=function(){this.style.background='';};
-    sp.onclick=function(){iconEl.textContent=e;picker.remove();};
+    sp.onmouseover=function(){this.style.background='#f3f4f6';};sp.onmouseout=function(){this.style.background='';};sp.onclick=function(){iconEl.textContent=e;picker.remove();};
     picker.appendChild(sp);
   });
   var r=iconEl.getBoundingClientRect();
@@ -3479,7 +3476,6 @@ async function savePost(){
   const title=document.getElementById('peTitle')?.value.trim();
   if(!title){toast('⚠️ 제목을 입력하세요');return;}
   try{
-    // 본문 내 base64 이미지 Storage 업로드
     const rawContent=document.getElementById('rteBody')?.innerHTML||'';
     const hasBase64=/src="data:/.test(rawContent);
     let content=rawContent;
@@ -3494,7 +3490,6 @@ async function savePost(){
         toast('⚠️ 이미지 처리 오류');
       }
     }
-    // _editId로 기존 게시글 참조
     const existing=_editId?S.posts.find(x=>x.id===_editId):null;
     const d={
       id:_editId||'p'+Date.now(),
@@ -3522,14 +3517,13 @@ async function savePost(){
     }
     await save();
     const label=_curPostType==='service'?'서비스 게시글':'가이드 게시글';
-    saveConfirm(`${label}이 저장됐습니다`, ()=>{
+    saveConfirm(`${label}이 저장됐습니다`,()=>{
       if(_curPostType==='service') rPostsFiltered('service');
       else rPostsFiltered('guide');
     });
   }catch(e){
     console.error('savePost 오류',e);
-    toast('❌ 저장 중 오류가 발생했습니다: '+e.message);
-    // finally()가 버튼을 복원함
+    toast('❌ 저장 오류: '+e.message);
   }
 }
 function delPost(id){if(!confirm('삭제?'))return;S.posts=S.posts.filter(p=>p.id!==id);save();rPostsFiltered(_curPostType||'guide');toast('삭제됨');}
@@ -3816,4 +3810,11 @@ function closeModal(){document.getElementById('mback').classList.remove('open');
 /* ── 저장 완료 알림 (우하단 토스트) ── */
 function saveConfirm(msg, onConfirm){
   toastSave('저장 완료!');
-  if(typeof onCon
+  if(typeof onConfirm==='function') setTimeout(onConfirm,50);
+}
+
+/* ── UTILS ── */
+function x(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
