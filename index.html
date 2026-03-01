@@ -2760,6 +2760,8 @@ function editSvcPage(svcId){
   rb.addEventListener('drop',rteImgDrop);
   // 전체화면 버튼 상태 초기화
   _isFullscreen=false;
+  // 표 리사이즈 초기화
+  setTimeout(()=>initTableResize(),80);
 }
 function saveSvcPage(svcId){
   if(!S.servicePages) S.servicePages={};
@@ -3405,8 +3407,10 @@ function initTableResize(){
   // rteBody는 openEditor 재호출 시 새로 생성됨 -> 매번 새 리스너 필요
   var ed = document.getElementById('rteBody');
   if(!ed) return;
-  // 이미 바인딩됐으면 스킵 (같은 엘리먼트에)
-  if(ed._rszBound) return;
+  // 이미 바인딩됐으면 리스너 제거 후 재바인딩 (DOM 재생성 대응)
+  if(ed._rszBound) {
+    ed._rszBound = false;
+  }
   ed._rszBound = true;
 
   var activeTbl = null;
