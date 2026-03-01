@@ -1846,7 +1846,7 @@ function rBanner(){
       <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.title}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.date}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.gallery?.length?`📷 ${u.gallery.length}장`:'없음'}</td>
-      <td><div style="display:flex;gap:5px"><button class="ios-btn-sm ios-btn-gray" onclick="editUpd('${u.id}')">편집</button><button class="ios-btn-sm ios-btn-red" onclick="delUpd('${u.id}')">삭제</button></div></td>
+      <td><div style="display:flex;gap:5px"><button class="ios-btn ios-btn-blue" onclick="editUpd('${u.id}')">편집</button><button class="ios-btn ios-btn-red" onclick="delUpd('${u.id}')">삭제</button></div></td>
     </tr>`).join('');
   document.getElementById('mainBody').innerHTML=`
   <div class="panel">
