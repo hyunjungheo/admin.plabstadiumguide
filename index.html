@@ -3410,16 +3410,19 @@ function openTblBuilder(btn){
   setTimeout(()=>document.addEventListener('click',(e)=>{if(!builder.contains(e.target))builder.classList.remove('open')},{once:true}),50);
 }
 /* ── 표 열/행 드래그 리사이즈 ── */
+// 이전 initTableResize 컨트롤러 보관
+var _rszAbort = null;
+
 function initTableResize(){
-  // rteBody는 openEditor 재호출 시 새로 생성됨 -> 매번 새 리스너 필요
+  // 이전 리스너 완전 제거
+  if(_rszAbort){ _rszAbort.abort(); _rszAbort = null; }
+  clearRH();
+
   var ed = document.getElementById('rteBody');
   if(!ed) return;
-  // 이미 바인딩됐으면 리스너 제거 후 재바인딩 (DOM 재생성 대응)
-  if(ed._rszBound) {
-    ed._rszBound = false;
-  }
-  ed._rszBound = true;
 
+  _rszAbort = new AbortController();
+  var sig = {signal: _rszAbort.signal};
   var activeTbl = null;
 
   ed.addEventListener('mousemove', function(e){
@@ -3429,7 +3432,7 @@ function initTableResize(){
     clearRH();
     activeTbl = tbl;
     if(tbl) makeRH(tbl);
-  });
+  }, sig);
 
   // 표 밖으로 나갈 때: _rh 위로 이동하는 경우는 유지
   document.addEventListener('mousemove', function(e){
@@ -3440,7 +3443,7 @@ function initTableResize(){
       clearRH();
       activeTbl = null;
     }
-  });
+  }, sig);
 }
 
 function clearRH(){
