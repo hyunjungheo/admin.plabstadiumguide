@@ -456,7 +456,7 @@ html.dark #toast.toast-save{background:rgba(16,185,129,.1);border-color:rgba(16,
           timeout
         ]);
       }catch(e){
-        console.error('이미지 업로드 오류',e);
+        console.error('🔴 이미지 업로드 오류 상세:', e.code, e.message, e);
         const code=e.code||''; const msg=e.message||'';
         let reason='';
         if(msg.includes('upload timeout')){
@@ -1327,20 +1327,20 @@ function showImgFailPopup(failCount, reason){
 
 const save = async()=>{
   let json=JSON.stringify(S);
-  /* base64 이미지 크기 체크 */
-  const hasB64=json.includes('"data:image');
-  if(hasB64){
+  /* base64 이미지가 남아있으면 제거 후 저장 (Firestore 1MB 보호) */
+  if(json.includes('"data:image')){
     const sizeKB=Math.round(json.length/1024);
-    if(json.length>900000){
-      // 1MB 초과 → 저장 불가, 사용자에게 안내
-      console.warn('⚠️ base64 포함 데이터 너무 큼:',sizeKB,'KB');
-      showImgFailPopup(1,
-        '이미지 포함 데이터가 '+sizeKB+'KB로 Firestore 한도(1MB)를 초과합니다.\n\n'
-        +'이미지를 Firebase Storage에 업로드해야 저장 가능합니다.\n'
-        +'Storage Rules에서 write 권한을 확인해 주세요.');
-      return; // 저장 중단
-    }
-    console.warn('⚠️ base64 이미지 포함 저장:',sizeKB,'KB (1MB 미만이므로 진행)');
+    console.warn('⚠️ base64 남아있음 (Storage 업로드 실패):',sizeKB,'KB → base64 제거 후 저장');
+    const cleaned=JSON.parse(json);
+    if(cleaned.posts) cleaned.posts=cleaned.posts.map(p=>{
+      if(p.content) p.content=p.content.replace(/src="data:image[^"]{0,500000}"/g,'src="" data-upload-failed="1"');
+      return p;
+    });
+    if(cleaned.categories) cleaned.categories=cleaned.categories.map(c=>{
+      if(c.heroImg&&c.heroImg.startsWith('data:')) c.heroImg='';
+      return c;
+    });
+    json=JSON.stringify(cleaned);
   }
   /* 로컬 백업 */
   try{localStorage.setItem('plab_v5',json);}catch(e){}
