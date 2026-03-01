@@ -2147,7 +2147,7 @@ function toggleBanner(id,val){const u=S.updates.find(x=>x.id===id);if(u){u.showI
    가이드 카드 관리 (= rGuide 동일)
 ════════════════════════════════════ */
 function rGuideCats(){
-  document.getElementById('pActs').innerHTML=`<button class="ios-btn ios-btn-blue" onclick="openCatModal()">＋ 카드 추가</button>`;
+  document.getElementById('pActs').innerHTML=`<button class="ios-btn-sm ios-btn-blue" onclick="openCatModal()">＋ 카드 추가</button>`;
   const rows=[...S.categories].sort((a,b)=>(a.order??0)-(b.order??0)).map((c,i)=>{
     const cnt=S.posts.filter(p=>p.category===c.id&&p.postType!=='service').length;
     return`<tr>
@@ -2156,7 +2156,7 @@ function rGuideCats(){
       <td style="font-weight:600">${c.name}</td>
       <td style="font-size:12px;color:var(--am)">${c.desc}</td>
       <td><span class="badge badge-pub" style="cursor:pointer" onclick="pg('guide-posts');filterCat='${c.id}';rPostsFiltered('guide')">${cnt}개 게시글 →</span></td>
-      <td><div style="display:flex;gap:5px"><button class="btn btn-gh bxs" onclick="editCat('${c.id}')">편집</button><button class="btn btn-rd bxs" onclick="delCat('${c.id}')">삭제</button></div></td>
+      <td><div style="display:flex;gap:5px"><button class="ios-btn ios-btn-blue" onclick="editCat('${c.id}')">편집</button><button class="ios-btn ios-btn-red" onclick="delCat('${c.id}')">삭제</button></div></td>
     </tr>`;
   }).join('');
   document.getElementById('mainBody').innerHTML=`
@@ -2170,7 +2170,7 @@ function rGuideCats(){
    서비스 카드 관리 (= rService 동일)
 ════════════════════════════════════ */
 function rServiceCards(){
-  document.getElementById('pActs').innerHTML=`<button class="ios-btn ios-btn-blue" onclick="openSvcModal()">＋ 카드 추가</button>`;
+  document.getElementById('pActs').innerHTML=`<button class="ios-btn-sm ios-btn-blue" onclick="openSvcModal()">＋ 카드 추가</button>`;
   const cardsHTML=S.services.map(s=>{
     const page=S.servicePages&&S.servicePages[s.id];
     const hasContent=page&&page.length>50;
@@ -2180,8 +2180,8 @@ function rServiceCards(){
           <div class="cat-hd-name">${s.emoji} ${s.title}</div>
           <div class="cat-hd-sub">${s.desc}</div>
         </div>
-        <button class="ios-btn-sm ios-btn-gray" onclick="editSvc('${s.id}')">편집</button>
-        <button class="ios-btn-sm ios-btn-red" onclick="delSvc('${s.id}')">삭제</button>
+        <button class="ios-btn ios-btn-blue" onclick="editSvc('${s.id}')">편집</button>
+        <button class="ios-btn ios-btn-red" onclick="delSvc('${s.id}')">삭제</button>
       </div>
     </div>`;
   }).join('');
@@ -2286,7 +2286,7 @@ function rPostsFiltered(type){
 
     document.getElementById('mainBody').innerHTML=`<div class="posts-list" id="catList">${groupsHTML}
       <div class="add-cat-row">
-        <button class="ios-btn ios-btn-gray" onclick="openCatModalInline()">＋ 새 카테고리 추가</button>
+        <button class="ios-btn-sm ios-btn-gray" onclick="openCatModalInline()">＋ 새 카테고리 추가</button>
       </div></div>`;
 
     // catList 드래그 초기화
@@ -2626,7 +2626,7 @@ function openEditorTyped(type,id){
    ④ HOME GUIDE CARD
 ════════════════════════════════════ */
 function rGuide(){
-  document.getElementById('pActs').innerHTML=`<button class="ios-btn ios-btn-blue" onclick="openCatModal()">＋ 카드 추가</button>`;
+  document.getElementById('pActs').innerHTML=`<button class="ios-btn-sm ios-btn-blue" onclick="openCatModal()">＋ 카드 추가</button>`;
   const cardsHTML=[...S.categories].sort((a,b)=>(a.order??0)-(b.order??0)).map((c,i)=>{
     const heroBg=c.heroImage
       ?`background:url(${c.heroImage}) center/cover no-repeat`
@@ -2640,8 +2640,8 @@ function rGuide(){
           <div class="cat-hd-name">${c.emoji} ${c.name}</div>
           <div class="cat-hd-sub">${c.desc}${c.heroImage?' · 🖼️ 배너 설정됨':''}</div>
         </div>
-        <button class="ios-btn-sm ios-btn-gray" onclick="editCat('${c.id}')">편집</button>
-        <button class="ios-btn-sm ios-btn-red" onclick="delCat('${c.id}')">삭제</button>
+        <button class="ios-btn ios-btn-blue" onclick="editCat('${c.id}')">편집</button>
+        <button class="ios-btn ios-btn-red" onclick="delCat('${c.id}')">삭제</button>
       </div>
     </div>`;
   }).join('');
@@ -2661,8 +2661,8 @@ function catForm(c){
         ${c?.heroImage?'':`<span style="color:rgba(255,255,255,.5);font-size:12px">미리보기</span>`}
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="ios-btn ios-btn-gray" onclick="document.getElementById('catHeroImgIn').click()" type="button">📁 이미지 선택</button>
-        ${c?.heroImage?`<button class="ios-btn ios-btn-red" onclick="clearCatHeroImg()" type="button">× 제거</button>`:''}
+        <button class="ios-btn-sm ios-btn-gray" onclick="document.getElementById('catHeroImgIn').click()" type="button">📁 이미지 선택</button>
+        ${c?.heroImage?`<button class="ios-btn-sm ios-btn-red" onclick="clearCatHeroImg()" type="button">× 제거</button>`:''}
         <input type="file" id="catHeroImgIn" accept="image/*" style="display:none" onchange="onCatHeroImgSelect(event)">
         <input type="hidden" id="cHeroImg" value="${x(c?.heroImage||'')}">
       </div>
@@ -2755,7 +2755,7 @@ function saveSvcPage(svcId){
 }
 function rService(){
   document.getElementById('pActs').innerHTML=`<button class="btn btn-bl" onclick="openSvcModal()">＋ 카드 추가</button>`;
-  const rows=S.services.map(s=>`<tr><td style="font-size:20px">${s.emoji}</td><td style="font-weight:600">${s.title}</td><td style="font-size:12px;color:var(--am)">${s.desc}</td><td><div style="display:flex;gap:5px"><button class="btn btn-gh bxs" onclick="editSvc('${s.id}')">편집</button><button class="btn btn-rd bxs" onclick="delSvc('${s.id}')">삭제</button></div></td></tr>`).join('');
+  const rows=S.services.map(s=>`<tr><td style="font-size:20px">${s.emoji}</td><td style="font-weight:600">${s.title}</td><td style="font-size:12px;color:var(--am)">${s.desc}</td><td><div style="display:flex;gap:5px"><button class="ios-btn ios-btn-blue" onclick="editSvc('${s.id}')">편집</button><button class="ios-btn ios-btn-red" onclick="delSvc('${s.id}')">삭제</button></div></td></tr>`).join('');
   document.getElementById('mainBody').innerHTML=`<div class="panel"><div style="padding:0"><table class="atbl"><thead><tr><th>이모지</th><th>제목</th><th>설명</th><th>작업</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function svcForm(s){const catOpts=S.categories.map(c=>`<option value="${c.id}" ${s?.link===c.id?'selected':''}>${c.name}</option>`).join('');return`<div class="field"><label class="fl">이모지</label><input class="fi" id="sE" value="${x(s?.emoji||'⚽')}" style="width:70px;font-size:20px"></div><div class="field"><label class="fl">제목</label><input class="fi" id="sT" value="${x(s?.title||'')}"></div><div class="field"><label class="fl">설명</label><textarea class="fi" id="sD" rows="12">${x(s?.desc||'')}</textarea></div><div class="field"><label class="fl">연결 카테고리</label><select class="fi" id="sL"><option value="">없음</option>${catOpts}</select></div>`;}
@@ -2780,8 +2780,8 @@ function rPosts(){
       <td style="font-size:11.5px;color:var(--am)">${cat?.name||'–'}</td>
       <td style="font-size:11.5px;color:var(--at);font-weight:600">${(p.views||0).toLocaleString()} 뷰</td>
       <td><div style="display:flex;gap:5px">
-        <button class="btn btn-bl bxs" onclick="openEditor('${p.id}')">편집</button>
-        <button class="btn btn-rd bxs" onclick="delPost('${p.id}')">삭제</button>
+        <button class="ios-btn ios-btn-blue" onclick="openEditor('${p.id}')">편집</button>
+        <button class="ios-btn ios-btn-red" onclick="delPost('${p.id}')">삭제</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -3692,7 +3692,7 @@ function rCats(){
   document.getElementById('pActs').innerHTML=`<button class="btn btn-bl" onclick="openCatModal()">＋ 카테고리 추가</button>`;
   const rows=[...S.categories].sort((a,b)=>(a.order??0)-(b.order??0)).map(c=>{
     const cnt=S.posts.filter(p=>p.category===c.id).length;
-    return`<tr><td style="font-size:20px">${c.emoji}</td><td style="font-weight:600">${c.name}</td><td style="font-size:12px;color:var(--am)">${c.desc}</td><td><span class="badge badge-pub">${cnt}개</span></td><td><div style="display:flex;gap:5px"><button class="btn btn-gh bxs" onclick="editCat('${c.id}')">편집</button><button class="btn btn-rd bxs" onclick="delCat('${c.id}')">삭제</button></div></td></tr>`;
+    return`<tr><td style="font-size:20px">${c.emoji}</td><td style="font-weight:600">${c.name}</td><td style="font-size:12px;color:var(--am)">${c.desc}</td><td><span class="badge badge-pub">${cnt}개</span></td><td><div style="display:flex;gap:5px"><button class="ios-btn ios-btn-blue" onclick="editCat('${c.id}')">편집</button><button class="ios-btn ios-btn-red" onclick="delCat('${c.id}')">삭제</button></div></td></tr>`;
   }).join('');
   document.getElementById('mainBody').innerHTML=`<div class="panel"><div style="padding:0"><table class="atbl"><thead><tr><th>이모지</th><th>이름</th><th>설명</th><th>게시글</th><th>작업</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -3893,7 +3893,7 @@ function rSettings(){
             ${s.ogImage?`<img src="${s.ogImage}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`:'<span style="font-size:11px;color:var(--am);text-align:center">이미지 없음</span>'}
           </div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button class="ios-btn ios-btn-gray" onclick="document.getElementById('ogImgInput').click()">📷 이미지 업로드</button>
+            <button class="ios-btn-sm ios-btn-gray" onclick="document.getElementById('ogImgInput').click()">📷 이미지 업로드</button>
             ${s.ogImage?`<button class="ios-btn-sm ios-btn-red" onclick="clearOgImg()">삭제</button>`:''}
             <input type="file" id="ogImgInput" accept="image/*" style="display:none" onchange="uploadOgImg(this)">
           </div>
