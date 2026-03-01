@@ -101,8 +101,8 @@ select.fi{cursor:pointer}
 
 /* ── TABLE ── */
 .atbl{width:100%;border-collapse:collapse}
-.atbl th{font-size:10.5px;font-weight:700;color:var(--am);text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-bottom:1px solid var(--abdr);text-align:left}
-.atbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.035);font-size:12.5px;color:var(--at);vertical-align:middle}
+.atbl th{font-size:11px;font-weight:700;color:var(--am);text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-bottom:1px solid var(--abdr);text-align:left}
+.atbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.035);font-size:14px;color:var(--at);vertical-align:middle}
 .atbl tr:last-child td{border-bottom:none}
 .atbl tr:hover td{background:var(--ahv)}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700}
@@ -1504,17 +1504,22 @@ async function _fbStartLoad(){
 ════════════════════════════════════ */
 const _ADMIN_PW='plab0104';
 function doLogin(){
-  const pw=document.getElementById('lpw').value;
-  if(pw===_ADMIN_PW){
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('adminWrap').classList.add('on');
-    document.getElementById('aEmail').textContent='관리자';
-    pg('dashboard');
-    _fbStartLoad();
-  } else {
-    document.getElementById('lerr').style.display='block';
-    document.getElementById('lpw').value='';
-    document.getElementById('lpw').focus();
+  try{
+    const pw=document.getElementById('lpw').value;
+    if(pw===_ADMIN_PW){
+      document.getElementById('loginWrap').style.display='none';
+      document.getElementById('adminWrap').classList.add('on');
+      document.getElementById('aEmail').textContent='관리자';
+      pg('dashboard');
+      _fbStartLoad();
+    } else {
+      document.getElementById('lerr').style.display='block';
+      document.getElementById('lpw').value='';
+      document.getElementById('lpw').focus();
+    }
+  }catch(e){
+    console.error('로그인 오류',e);
+    alert('로그인 중 오류가 발생했습니다: '+e.message);
   }
 }
 function doLogout(){
@@ -1851,7 +1856,7 @@ function rBanner(){
   document.getElementById('mainBody').innerHTML=`
   <div class="panel">
     <div class="phd"><div><div class="phd-t">업데이트 소식 목록</div><div class="phd-s">최대 3개가 홈 배너에 노출됩니다</div></div></div>
-    <div style="padding:0">${S.updates.length?`<table class="atbl"><thead><tr><th>유형</th><th>배너 노출</th><th>제목</th><th>날짜</th><th>갤러리</th><th>작업</th></tr></thead><tbody>${rows}</tbody></table>`:
+    <div style="padding:0">${S.updates.length?`<table class="atbl"><thead><tr><th>유형</th><th style="text-align:center">배너 노출</th><th>제목</th><th>날짜</th><th>갤러리</th><th style="text-align:center">작업</th></tr></thead><tbody>${rows}</tbody></table>`:
     '<div style="text-align:center;padding:40px;color:var(--am)">소식이 없습니다</div>'}</div>
   </div>`;
 }
@@ -1869,7 +1874,9 @@ function updForm(u){
         <option value="notice" ${u?.type==='notice'?'selected':''}>공지</option>
       </select></div>
     <div class="field"><label class="fl">제목</label><input class="fi" id="uTi" value="${x(u?.title||'')}" placeholder="소식 제목"></div>
-    <div class="field"><label class="fl">날짜 (예: '26.2)</label><input class="fi" id="uD" value="${x(u?.date||'')}" placeholder="'26.2" style="width:120px"></div>
+    <div class="field"><label class="fl">날짜</label>
+      <input type="date" class="fi" id="uD" value="${u?.dateISO||''}" style="width:180px;cursor:pointer">
+      <span style="font-size:12px;color:var(--am);margin-left:8px">홈: 년·월만 표시 / 상세: 년·월·일 표시</span></div>
     <div class="field"><label class="fl">부제목</label><input class="fi" id="uSub" value="${x(u?.subtitle||'')}" placeholder="배너에 표시되는 한 줄 요약"></div>
     <div class="field"><label class="fl">연결 게시글 (선택)</label>
       <select class="fi" id="uArt">
@@ -1961,15 +1968,15 @@ function openUpdModal(id){
       style="width:100%;font-size:22px;font-weight:700;color:var(--at);background:transparent;border:none;outline:none;font-family:inherit;padding:4px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--abdr);display:block">
 
     <!-- 메타 바 -->
-    <div style="display:grid;grid-template-columns:auto 1fr auto 90px;gap:8px 12px;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--abdr);align-items:center">
+    <div style="display:grid;display:flex;flex-wrap:wrap;gap:8px 12px;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--abdr);align-items:center">
       <label style="font-size:12px;font-weight:500;color:var(--am)">유형</label>
-      <select class="fi" id="uT" style="width:100%">
+      <select class="fi" id="uT" style="min-width:160px;flex:1">
         <option value="new" ${!u||u.type==='new'?'selected':''}>NEW — 새 기능 출시</option>
         <option value="fix" ${u?.type==='fix'?'selected':''}>개선 — 기능 업데이트</option>
         <option value="notice" ${u?.type==='notice'?'selected':''}>공지 — 운영 안내</option>
       </select>
       <label style="font-size:12px;font-weight:500;color:var(--am)">날짜</label>
-      <input class="fi" id="uD" value="${x(u?.date||'')}" placeholder="'26.2" style="width:90px">
+      <input type="date" class="fi" id="uD" value="${u?.dateISO||''}" style="width:160px;cursor:pointer;flex-shrink:0">
       <label style="font-size:12px;font-weight:500;color:var(--am)">부제목</label>
       <input class="fi" id="uSub" value="${x(u?.subtitle||'')}" placeholder="배너 하단에 표시되는 한 줄 요약 문구를 여기에 입력하세요" style="grid-column:2/-1">
     </div>
@@ -2107,7 +2114,8 @@ async function saveUpd(id){
     id:id||'u'+Date.now(),
     type:document.getElementById('uT')?.value||'new',
     title:(document.getElementById('uTitle')||document.getElementById('uTi'))?.value.trim()||'',
-    date:document.getElementById('uD')?.value.trim()||'',
+    dateISO:document.getElementById('uD')?.value||'',
+    date:(()=>{const v=document.getElementById('uD')?.value||'';if(!v)return '';const [y,m]=v.split('-');return `'${String(y).slice(2)}.${Number(m)}`;})(),
     subtitle:document.getElementById('uSub')?.value.trim()||'',
     articleId:document.getElementById('uArt')?.value||'',
     content,
