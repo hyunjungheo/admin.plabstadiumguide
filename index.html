@@ -1968,17 +1968,20 @@ function openUpdModal(id){
       style="width:100%;font-size:22px;font-weight:700;color:var(--at);background:transparent;border:none;outline:none;font-family:inherit;padding:4px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--abdr);display:block">
 
     <!-- 메타 바 -->
-    <div style="display:grid;display:flex;flex-wrap:wrap;gap:8px 12px;padding:12px 0;margin-bottom:8px;border-bottom:1px solid var(--abdr);align-items:center">
-      <label style="font-size:12px;font-weight:500;color:var(--am)">유형</label>
-      <select class="fi" id="uT" style="min-width:160px;flex:1">
+    <div style="display:flex;gap:8px 12px;padding:12px 0;margin-bottom:4px;border-bottom:1px solid var(--abdr);align-items:center">
+      <label style="font-size:12px;font-weight:500;color:var(--am);white-space:nowrap">유형</label>
+      <select class="fi" id="uT" style="max-width:180px">
         <option value="new" ${!u||u.type==='new'?'selected':''}>NEW — 새 기능 출시</option>
         <option value="fix" ${u?.type==='fix'?'selected':''}>개선 — 기능 업데이트</option>
         <option value="notice" ${u?.type==='notice'?'selected':''}>공지 — 운영 안내</option>
       </select>
-      <label style="font-size:12px;font-weight:500;color:var(--am)">날짜</label>
-      <input type="date" class="fi" id="uD" value="${u?.dateISO||''}" style="width:160px;cursor:pointer;flex-shrink:0">
-      <label style="font-size:12px;font-weight:500;color:var(--am)">부제목</label>
-      <input class="fi" id="uSub" value="${x(u?.subtitle||'')}" placeholder="배너 하단에 표시되는 한 줄 요약 문구를 여기에 입력하세요" style="grid-column:2/-1">
+      <label style="font-size:12px;font-weight:500;color:var(--am);white-space:nowrap;margin-left:8px">날짜</label>
+      <input type="date" class="fi" id="uD" value="${u?.dateISO||''}" style="width:200px;cursor:pointer">
+    </div>
+    <!-- 부제목 -->
+    <div style="padding:8px 0 12px;margin-bottom:8px;border-bottom:1px solid var(--abdr);display:flex;align-items:center;gap:12px">
+      <label style="font-size:12px;font-weight:500;color:var(--am);white-space:nowrap">부제목</label>
+      <input class="fi" id="uSub" value="${x(u?.subtitle||'')}" placeholder="배너 하단에 표시되는 한 줄 요약 문구" style="flex:1">
     </div>
 
     <!-- RTE 에디터 (게시글 관리와 동일) -->
