@@ -713,8 +713,13 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 <!-- IMAGE RESIZE BAR -->
 <div class="img-resize-bar" id="imgResizeBar">
   <span id="imgResizeInfo" style="color:var(--am)">-</span>
-  <input type="range" id="imgResizeSlider" min="10" max="100" value="100" style="width:120px;accent-color:var(--abl)" oninput="onImgResize(this.value)">
+  <input type="range" id="imgResizeSlider" min="10" max="100" value="100" style="width:110px;accent-color:var(--abl)" oninput="onImgResize(this.value)">
   <span id="imgResizePct" style="min-width:32px;font-weight:600">100%</span>
+  <span style="width:1px;height:14px;background:var(--abdr);margin:0 4px;flex-shrink:0"></span>
+  <button class="btn btn-gh bxs" onclick="imgAlign('left')" title="왼쪽">⬅</button>
+  <button class="btn btn-gh bxs" onclick="imgAlign('center')" title="가운데">⬛</button>
+  <button class="btn btn-gh bxs" onclick="imgAlign('right')" title="오른쪽">➡</button>
+  <span style="width:1px;height:14px;background:var(--abdr);margin:0 4px;flex-shrink:0"></span>
   <button class="btn btn-gh bxs" onclick="closeImgResize()">✕</button>
 </div>
 
@@ -3790,7 +3795,16 @@ function onImgResize(val){
   _selImg.style.width=val+'%';
   _selImg.style.maxWidth='100%';
   _selImg.style.height='auto';
+  _selImg.style.display='block';
+  _selImg.style.margin='12px auto';
   document.getElementById('imgResizePct').textContent=val+'%';
+}
+function imgAlign(dir){
+  if(!_selImg)return;
+  if(dir==='left'){_selImg.style.margin='12px auto 12px 0';}
+  else if(dir==='right'){_selImg.style.margin='12px 0 12px auto';}
+  else{_selImg.style.margin='12px auto';}
+  _selImg.style.display='block';
 }
 function closeImgResize(){
   document.getElementById('imgResizeBar').classList.remove('show');
@@ -3811,7 +3825,7 @@ function rteInsertImages(e){
     r.onload=ev=>{
       document.getElementById('rteBody').focus();
       restoreRange();
-      document.execCommand('insertHTML',false,`<img src="${ev.target.result}" style="max-width:100%;border-radius:8px;margin:8px 0">`);
+      document.execCommand('insertHTML',false,`<img src="${ev.target.result}" style="max-width:100%;width:100%;height:auto;border-radius:8px;margin:12px 0;display:block">`);
       saveRange();
     };
     r.readAsDataURL(f);
@@ -3842,7 +3856,7 @@ function rteInsertGallery(e){
   e.target.value='';
 }
 function sideImgOver(e){e.preventDefault();}
-function sideImgDrop(e){e.preventDefault();Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{const r=new FileReader();r.onload=ev=>{document.getElementById('rteBody').focus();restoreRange();document.execCommand('insertHTML',false,`<img src="${ev.target.result}" style="max-width:100%;border-radius:8px;margin:8px 0">`);saveRange();};r.readAsDataURL(f);});}
+function sideImgDrop(e){e.preventDefault();Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{const r=new FileReader();r.onload=ev=>{document.getElementById('rteBody').focus();restoreRange();document.execCommand('insertHTML',false,`<img src="${ev.target.result}" style="max-width:100%;width:100%;height:auto;border-radius:8px;margin:12px 0;display:block">`);saveRange();};r.readAsDataURL(f);});}
 
 /* ── 색상 팝업 ── */
 let _colorMode='fore';
