@@ -190,12 +190,12 @@ html.dark #toast.toast-save{background:rgba(16,185,129,.1);border-color:rgba(16,
 /* ════════════════════
    RICH TEXT EDITOR
 ════════════════════ */
-.rte-wrap{border:1px solid var(--abdr);border-radius:10px;overflow:visible;position:relative}
+.rte-wrap{border:1px solid var(--abdr);border-radius:10px;overflow:visible;position:relative;background:var(--ab)}
 
 /* ── 전체화면 에디터 ── */
-.editor-fullscreen{position:fixed;inset:0;z-index:2000;background:var(--ab);display:flex;flex-direction:column;overflow:hidden}
-.editor-fullscreen .rte-wrap{border:none;border-radius:0;flex:1;display:flex;flex-direction:column;overflow:visible;position:relative}
-.editor-fullscreen .rte-body{flex:1;max-height:none;overflow-y:auto;position:relative}
+.editor-fullscreen{position:fixed;inset:0;z-index:2000;background:var(--as);display:flex;flex-direction:column;overflow:hidden}
+.editor-fullscreen .rte-wrap{border:none;border-radius:0;flex:1;display:flex;flex-direction:column;overflow:visible;position:relative;background:var(--as)}
+.editor-fullscreen .rte-body{flex:1;max-height:none;overflow-y:auto;position:relative;max-width:780px;margin:0 auto;width:100%}
 .editor-fullscreen .rte-toolbar{border-radius:0}
 .editor-fullscreen-hd{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--abdr);background:var(--as);flex-shrink:0}
 .editor-fullscreen-hd input{flex:1;font-size:18px;font-weight:700;color:var(--at);background:transparent;border:none;outline:none;font-family:inherit}
@@ -262,7 +262,9 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 .rte-body .sp-step p{font-size:13px;color:var(--am);line-height:1.6;margin:0}
 
 /* ── 에디터 개선 ── */
-.rte-body{background:var(--ab);min-height:1360px;padding:32px 40px;font-size:15px;color:var(--at);line-height:1.8;outline:none;overflow-y:auto;max-height:90vh;position:relative}
+/* rte-body: 실제 홈페이지 본문(720px)과 동일한 느낌으로 편집 */
+.rte-body img{max-width:100%;border-radius:8px;margin:8px 0;display:block;cursor:pointer}
+.rte-body img.img-selected{outline:2px solid var(--abl);outline-offset:2px}
 .rte-toolbar{background:var(--as);border-bottom:1px solid var(--abdr);padding:6px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:3px;position:sticky;top:0;z-index:10}
 .rtb{padding:4px 7px;border:none;background:none;border-radius:5px;cursor:pointer;font-size:12.5px;color:var(--at);font-family:inherit;transition:background .12s;white-space:nowrap}
 .rtb:hover{background:var(--ahv)}
@@ -338,10 +340,13 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 .rtb-fs{width:60px;background:var(--ab);border:1px solid var(--abdr);border-radius:5px;padding:2px 6px;font-size:12px;color:var(--at);outline:none;font-family:inherit;cursor:pointer;height:26px}
 .rtb-color{width:20px;height:20px;border-radius:50%;border:2px solid var(--abdr);cursor:pointer;padding:0}
 .rte-body{
-  background:var(--ab);min-height:1360px;padding:24px 32px;
+  background:var(--ab);min-height:1360px;
   font-size:14px;color:var(--at);line-height:1.75;outline:none;
   overflow-y:auto;max-height:90vh;
-  position:relative;
+  position:relative;box-sizing:border-box;
+  /* 홈페이지 본문(720px)과 동일한 폭 — WYSIWYG 미리보기 */
+  max-width:780px;margin:0 auto;padding:28px 30px;
+  border-left:1px solid var(--abdr);border-right:1px solid var(--abdr);
 }
 .rte-body:empty::before{content:'내용을 입력하세요...';color:var(--am);opacity:.5;pointer-events:none}
 /* 에디터 내부 스타일 */
@@ -369,8 +374,6 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 .rte-body table th{font-weight:600;color:var(--at);font-size:12.5px;letter-spacing:.01em}
 ._rh{transition:background .1s}
 ._rh:hover,._rh.dragging{background:rgba(59,130,246,.55)!important;border-radius:2px}
-.rte-body img{max-width:100%;border-radius:8px;margin:8px 0;display:block;cursor:pointer}
-.rte-body img.img-selected{outline:2px solid var(--abl);outline-offset:2px}
 .img-resize-bar{display:none;align-items:center;gap:8px;padding:6px 12px;background:var(--as);border:1px solid var(--abdr);border-radius:8px;position:fixed;z-index:1000;font-size:12px;color:var(--at);box-shadow:0 4px 12px rgba(0,0,0,.15)}
 .col-resize-handle{position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize;z-index:10}
 .col-resize-handle:hover{background:rgba(20,102,245,.35);border-radius:2px}
