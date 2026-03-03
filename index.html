@@ -3328,7 +3328,7 @@ function _patchCalloutColorBtns(){
     const btn=document.createElement('span');
     btn.className='callout-color-btn';btn.contentEditable='false';btn.textContent='🎨';btn.title='배경색 변경';
     btn.style.cssText='position:absolute;top:6px;right:6px;font-size:14px;cursor:pointer;opacity:.4;transition:opacity .15s;user-select:none';
-    btn.onclick=function(){pickCalloutColor(el);};
+    /* onclick은 contenteditable 안에서 불안정 → 이벤트 위임으로 처리됨 */
     el.appendChild(btn);
   });
 }
@@ -3476,10 +3476,26 @@ function _initTblCtx(){
   const ed=document.getElementById('rteBody');
   if(!ed||ed._tblCtxBound)return;
   ed._tblCtxBound=true;
+  /* 표 우클릭 메뉴 */
   ed.addEventListener('contextmenu',function(e){
     const cell=e.target.closest('td,th');if(!cell)return;
     const tbl=cell.closest('table');if(!tbl)return;
     e.preventDefault();_tblCtxTarget={cell,tbl};_showTblCtx(e.clientX,e.clientY);
+  });
+  /* 콜아웃 🎨 버튼 클릭 — 이벤트 위임 (contenteditable 안에서 onclick 미동작 방지) */
+  ed.addEventListener('mousedown',function(e){
+    const btn=e.target.closest('.callout-color-btn');
+    if(!btn)return;
+    e.preventDefault();e.stopPropagation();
+    const callout=btn.closest('.callout');
+    if(callout) setTimeout(function(){pickCalloutColor(callout);},0);
+  });
+  /* 콜아웃 이모지 클릭 — 이벤트 위임 */
+  ed.addEventListener('mousedown',function(e){
+    const icon=e.target.closest('.callout-icon');
+    if(!icon)return;
+    e.preventDefault();e.stopPropagation();
+    setTimeout(function(){pickCalloutEmoji(icon);},0);
   });
   document.addEventListener('click',function(e){
     const m=document.getElementById('_tblCtxMenu');if(m&&!m.contains(e.target))m.remove();
