@@ -2339,7 +2339,9 @@ function rPostsFiltered(type){
         const ord=(S.postOrder&&S.postOrder[catKey+'__'+sk])||[];
         if(ord.length)subMap[sk].sort((a,b)=>{const ai=ord.indexOf(a.id),bi=ord.indexOf(b.id);return(ai<0?999:ai)-(bi<0?999:bi);});
       });
-      const allSubs=subOrder.length?subOrder:Object.keys(subMap);
+      const allSubs=subOrder.length
+        ? [...subOrder, ...Object.keys(subMap).filter(k=>!subOrder.includes(k))]
+        : Object.keys(subMap);
 
       const subHTML=allSubs.map((subName,subIdx)=>{
         const subPosts=subMap[subName]||[];
@@ -3273,7 +3275,7 @@ function syncFsTitle(val){
 function rteInsertCallout(){
   document.getElementById('rteBody').focus();
   restoreRange();
-  const html=`<div class="callout" data-callout="1" style="background:#f1f1ef"><span class="callout-icon" onclick="pickCalloutEmoji(this)" title="클릭하여 이모지 변경">💡</span><div class="callout-text" contenteditable="true"><p>여기에 내용을 입력하세요</p></div><span class="callout-color-btn" onclick="pickCalloutColor(this.parentElement)" title="배경색 변경" contenteditable="false" style="position:absolute;top:6px;right:6px;font-size:14px;cursor:pointer;opacity:.4;transition:opacity .15s;user-select:none">🎨</span></div><p><br></p>`;
+  const html=`<div class="callout" data-callout="1" style="background:#f1f1ef"><span class="callout-icon" title="클릭하여 이모지 변경">💡</span><div class="callout-text" contenteditable="true"><p>여기에 내용을 입력하세요</p></div><span class="callout-color-btn" title="배경색 변경" contenteditable="false" style="position:absolute;top:6px;right:6px;font-size:14px;cursor:pointer;opacity:.4;transition:opacity .15s;user-select:none">🎨</span></div><p><br></p>`;
   document.execCommand('insertHTML',false,html);
   _patchCalloutColorBtns();
   saveRange();
@@ -3294,7 +3296,7 @@ function pickCalloutEmoji(iconEl){
   var r=iconEl.getBoundingClientRect();
   picker.style.top=(r.bottom+4)+'px';picker.style.left=r.left+'px';
   document.body.appendChild(picker);
-  setTimeout(function(){document.addEventListener('click',function rm(){picker.remove();document.removeEventListener('click',rm);});},50);
+  setTimeout(function(){document.addEventListener('click',function rm(ev){if(!picker.contains(ev.target)&&!ev.target.closest('.callout-icon')){picker.remove();document.removeEventListener('click',rm);}});},200);
 }
 
 /* ── 콜아웃 배경색 선택 ── */
@@ -3339,7 +3341,7 @@ function pickCalloutColor(calloutEl){
   p.style.top=Math.min(rect.top,window.innerHeight-260)+'px';
   p.style.left=Math.min(rect.right+8,window.innerWidth-220)+'px';
   document.body.appendChild(p);
-  setTimeout(function(){document.addEventListener('click',function rm2(e){if(!p.contains(e.target)){p.remove();document.removeEventListener('click',rm2);}},{capture:true});},50);
+  setTimeout(function(){document.addEventListener('click',function rm2(e){if(!p.contains(e.target)&&!e.target.closest('.callout-color-btn')){p.remove();document.removeEventListener('click',rm2);}},{capture:true});},200);
 }
 function _patchCalloutColorBtns(){
   document.querySelectorAll('#rteBody .callout').forEach(function(el){
@@ -3508,14 +3510,17 @@ function _initTblCtx(){
     if(!btn)return;
     e.preventDefault();e.stopPropagation();
     const callout=btn.closest('.callout');
-    if(callout) setTimeout(function(){pickCalloutColor(callout);},0);
+    if(callout) setTimeout(function(){pickCalloutColor(callout);},10);
+  });
+  ed.addEventListener('click',function(e){
+    if(e.target.closest('.callout-color-btn')||e.target.closest('.callout-icon')){e.preventDefault();e.stopPropagation();}
   });
   /* 콜아웃 이모지 클릭 — 이벤트 위임 */
   ed.addEventListener('mousedown',function(e){
     const icon=e.target.closest('.callout-icon');
     if(!icon)return;
     e.preventDefault();e.stopPropagation();
-    setTimeout(function(){pickCalloutEmoji(icon);},0);
+    setTimeout(function(){pickCalloutEmoji(icon);},10);
   });
   document.addEventListener('click',function(e){
     const m=document.getElementById('_tblCtxMenu');if(m&&!m.contains(e.target))m.remove();
@@ -4039,7 +4044,17 @@ function makeRH(tbl){
   if(!tbl.style.width || tbl.style.width === '100%')
     tbl.style.width = tbl.offsetWidth + 'px';
 
-  var n = tbl.rows[0] ? tbl.rows[0].cells.length : 0;
+  /* col 요소 폭을 실제 렌더링 px로 변환 (% → px) */
+  var firstRow = tbl.rows[0];
+  var cols = tbl.querySelectorAll('colgroup col');
+  if(firstRow && cols.length){
+    for(var ci=0; ci<cols.length; ci++){
+      var cell = firstRow.cells[ci];
+      if(cell) cols[ci].style.width = cell.offsetWidth + 'px';
+    }
+  }
+
+  var n = firstRow ? firstRow.cells.length : 0;
   if(!n) return;
 
   for(var i=0; i<n; i++){
@@ -4077,22 +4092,33 @@ function makeRH(tbl){
         document.body.appendChild(ov);
 
         var sx = e.clientX;
-        var snapL = Array.from(tbl.rows).map(function(r){ return r.cells[ci] ? r.cells[ci].offsetWidth : 80; });
-        var snapR = Array.from(tbl.rows).map(function(r){ return r.cells[ci+1] ? r.cells[ci+1].offsetWidth : 80; });
+        var firstRow = tbl.rows[0];
+        var cellL = firstRow ? firstRow.cells[ci] : null;
+        var cellR = firstRow ? firstRow.cells[ci+1] : null;
+        var startL = cellL ? cellL.offsetWidth : 80;
+        var startR = cellR ? cellR.offsetWidth : 80;
         var snapW = tbl.offsetWidth;
+
+        /* colgroup/col 요소 찾기 */
+        var cols = tbl.querySelectorAll('colgroup col');
+        var colL = cols[ci] || null;
+        var colR = cols[ci+1] || null;
 
         function mv(e){
           var dx = e.clientX - sx;
           if(isLast){
-            tbl.style.width = Math.max(100,snapW+dx)+'px';
-            Array.from(tbl.rows).forEach(function(r,i){
-              if(r.cells[ci]) r.cells[ci].style.width=Math.max(40,snapL[i]+dx)+'px';
-            });
+            var newW = Math.max(100, snapW + dx);
+            tbl.style.width = newW + 'px';
+            var newL = Math.max(40, startL + dx);
+            if(colL) colL.style.width = newL + 'px';
+            if(cellL) cellL.style.width = newL + 'px';
           } else {
-            Array.from(tbl.rows).forEach(function(r,i){
-              if(r.cells[ci])   r.cells[ci].style.width  =Math.max(40,snapL[i]+dx)+'px';
-              if(r.cells[ci+1]) r.cells[ci+1].style.width=Math.max(40,snapR[i]-dx)+'px';
-            });
+            var newL = Math.max(40, startL + dx);
+            var newR = Math.max(40, startR - dx);
+            if(colL) colL.style.width = newL + 'px';
+            if(colR) colR.style.width = newR + 'px';
+            if(cellL) cellL.style.width = newL + 'px';
+            if(cellR) cellR.style.width = newR + 'px';
           }
           pos();
         }
