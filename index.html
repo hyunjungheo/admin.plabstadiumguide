@@ -263,6 +263,8 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 
 /* ── 에디터 개선 ── */
 .rte-body img{max-width:100%;border-radius:8px;margin:8px 0;display:block;cursor:pointer}
+.rte-body video{max-width:100%;border-radius:10px;margin:8px 0;display:block}
+.rte-body .rte-video-wrap{margin:12px 0;border-radius:10px;overflow:hidden;background:#000;position:relative}
 .rte-body img.img-selected{outline:2px solid var(--abl);outline-offset:2px}
 
 /* ── iOS 드래그 핸들 ── */
@@ -1377,19 +1379,24 @@ function showImgFailPopup(failCount, reason){
 
 const save = async()=>{
   let json=JSON.stringify(S);
-  /* base64 이미지가 남아있으면 제거 후 저장 (Firestore 1MB 보호) */
-  if(json.includes('"data:image')){
+  /* base64 이미지/동영상이 남아있으면 제거 후 저장 (Firestore 1MB 보호) */
+  if(json.includes('"data:image')||json.includes('"data:video')){
     const sizeKB=Math.round(json.length/1024);
     console.warn('⚠️ base64 남아있음 (Storage 업로드 실패):',sizeKB,'KB → base64 제거 후 저장');
     const cleaned=JSON.parse(json);
     if(cleaned.posts) cleaned.posts=cleaned.posts.map(p=>{
-      if(p.content) p.content=p.content.replace(/src="data:image[^"]{0,500000}"/g,'src="" data-upload-failed="1"');
+      if(p.content) p.content=p.content.replace(/src="data:(image|video)[^"]{0,500000}"/g,'src="" data-upload-failed="1"');
       return p;
     });
     if(cleaned.categories) cleaned.categories=cleaned.categories.map(c=>{
       if(c.heroImg&&c.heroImg.startsWith('data:')) c.heroImg='';
       return c;
     });
+    if(cleaned.servicePages){
+      Object.keys(cleaned.servicePages).forEach(k=>{
+        if(cleaned.servicePages[k]) cleaned.servicePages[k]=cleaned.servicePages[k].replace(/src="data:(image|video)[^"]{0,500000}"/g,'src="" data-upload-failed="1"');
+      });
+    }
     json=JSON.stringify(cleaned);
   }
   /* 로컬 백업 */
@@ -1480,25 +1487,39 @@ async function uploadRteImages(html){
   const parser=new DOMParser();
   const doc2=parser.parseFromString(html,'text/html');
   const imgs=[...doc2.querySelectorAll('img[src^="data:"]')];
+  const vids=[...doc2.querySelectorAll('video[src^="data:"]')];
   let uploadFailReason='';
   let uploadSuccess=0, uploadFail=0;
+  /* 이미지 업로드 */
   await Promise.all(imgs.map(async img=>{
     window._lastImgUploadError='';
-    const originalSrc=img.src; // 원본 base64 보존
+    const originalSrc=img.src;
     const url=await uploadImg(originalSrc,'posts');
     if(url&&!url.startsWith('data:')){
-      img.src=url; // Storage URL로 교체 성공
+      img.src=url;
       uploadSuccess++;
     } else {
-      // 실패해도 원본 base64 유지 (이미지 사라지지 않음)
       img.src=originalSrc;
       if(window._lastImgUploadError) uploadFailReason=window._lastImgUploadError;
       uploadFail++;
     }
   }));
+  /* 동영상 업로드 */
+  await Promise.all(vids.map(async vid=>{
+    window._lastImgUploadError='';
+    const originalSrc=vid.src;
+    const url=await uploadImg(originalSrc,'videos');
+    if(url&&!url.startsWith('data:')){
+      vid.src=url;
+      uploadSuccess++;
+    } else {
+      vid.src=originalSrc;
+      if(window._lastImgUploadError) uploadFailReason=window._lastImgUploadError;
+      uploadFail++;
+    }
+  }));
   if(uploadFail>0){
-    // 실패 이유 팝업 표시
-    const reason=uploadFailReason||'이미지를 Firebase Storage에 업로드하지 못했습니다.';
+    const reason=uploadFailReason||'미디어를 Firebase Storage에 업로드하지 못했습니다.';
     window._pendingImgFailReason=reason;
     window._imgUploadStats={success:uploadSuccess,fail:uploadFail};
   }
@@ -2096,6 +2117,7 @@ function openUpdModal(id){
         <div class="rte-sep"></div>
         <button class="rtb" onclick="document.getElementById('rteImgIn').click()" title="이미지">🖼️</button>
         <button class="rtb" onclick="openGalleryInline()" title="갤러리">🖼️✦</button>
+        <button class="rtb" onclick="document.getElementById('rteVidIn').click()" title="동영상/GIF">🎬</button>
         <div class="rte-sep"></div>
         <button class="rtb" onclick="rteCmd('undo')" title="실행취소">↩</button>
         <button class="rtb" onclick="rteCmd('redo')" title="다시실행">↪</button>
@@ -2953,7 +2975,8 @@ function editSvcPage(svcId){
   // 이미지 드랍
   const rb=document.getElementById('rteBody');
   rb.addEventListener('dragover',e=>e.preventDefault());
-  rb.addEventListener('drop',rteImgDrop);
+  rb.addEventListener('drop',rteDropHandler);
+  rb.addEventListener('paste',rtePasteHandler);
   rb.addEventListener('input',()=>{_editorDirty=true;});
   _editorDirty=false;
   // 전체화면 버튼 상태 초기화
@@ -3161,11 +3184,13 @@ function openEditor(id){
 
           <div class="rte-sep"></div>
 
-          <!-- 이미지 첨부 / 갤러리 삽입 -->
+          <!-- 이미지 첨부 / 갤러리 삽입 / 동영상·GIF -->
           <button class="rtb" onclick="document.getElementById('rteImgIn').click()" title="이미지 1장 삽입">🖼️</button>
           <button class="rtb" onclick="openGalleryInline()" title="갤러리 그리드 삽입 (여러 장)">🖼️✦</button>
+          <button class="rtb" onclick="document.getElementById('rteVidIn').click()" title="동영상/GIF 삽입">🎬</button>
           <input type="file" id="rteImgIn" accept="image/*" style="display:none" multiple onchange="rteInsertImages(event)">
           <input type="file" id="rteGalIn" accept="image/*" style="display:none" multiple onchange="rteInsertGallery(event)">
+          <input type="file" id="rteVidIn" accept="video/*,image/gif" style="display:none" onchange="rteInsertVideo(event)">
 
           <div class="rte-sep"></div>
 
@@ -3878,6 +3903,129 @@ function rteInsertGallery(e){
 function sideImgOver(e){e.preventDefault();}
 function sideImgDrop(e){e.preventDefault();Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>{const r=new FileReader();r.onload=ev=>{document.getElementById('rteBody').focus();restoreRange();document.execCommand('insertHTML',false,`<img src="${ev.target.result}" style="max-width:100%;width:100%;height:auto;border-radius:8px;margin:12px 0;display:block">`);saveRange();};r.readAsDataURL(f);});}
 
+/* ── 드래그&드롭 핸들러 (이미지 + 동영상/GIF) ── */
+function rteDropHandler(e){
+  e.preventDefault();
+  var files=Array.from(e.dataTransfer.files);
+  files.forEach(function(f){
+    if(f.type.startsWith('image/gif')){
+      _insertMediaFile(f,'gif');
+    } else if(f.type.startsWith('video/')){
+      _insertMediaFile(f,'video');
+    } else if(f.type.startsWith('image/')){
+      var r=new FileReader();
+      r.onload=function(ev){
+        document.getElementById('rteBody').focus();
+        restoreRange();
+        document.execCommand('insertHTML',false,'<img src="'+ev.target.result+'" style="max-width:100%;width:100%;height:auto;border-radius:8px;margin:12px 0;display:block">');
+        saveRange();
+      };
+      r.readAsDataURL(f);
+    }
+  });
+}
+
+/* ── 붙여넣기 핸들러 (노션 표 정규화) ── */
+function rtePasteHandler(e){
+  var cd=e.clipboardData;if(!cd)return;
+  var html=cd.getData('text/html');
+  if(!html)return;
+  /* 표가 포함된 경우 정규화 */
+  if(/<table/i.test(html)){
+    e.preventDefault();
+    var tmp=document.createElement('div');
+    tmp.innerHTML=html;
+    tmp.querySelectorAll('table').forEach(function(tbl){_normalizeTable(tbl);});
+    document.getElementById('rteBody').focus();
+    restoreRange();
+    document.execCommand('insertHTML',false,tmp.innerHTML);
+    saveRange();
+    setTimeout(function(){initTableResize();},100);
+  }
+}
+
+/* ── 표 정규화: 외부 붙여넣기 표를 에디터 형식으로 변환 ── */
+function _normalizeTable(tbl){
+  /* 기본 스타일 */
+  tbl.removeAttribute('class');
+  tbl.style.cssText='border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed';
+  /* colgroup 제거 후 재생성 */
+  var cg=tbl.querySelector('colgroup');
+  if(cg) cg.remove();
+  /* 첫 행에서 열 수 파악 */
+  var firstRow=tbl.rows[0];
+  if(!firstRow)return;
+  var n=firstRow.cells.length;
+  if(!n)return;
+  /* colgroup 생성 */
+  var newCg=document.createElement('colgroup');
+  var pct=Math.round(100/n);
+  for(var i=0;i<n;i++){
+    var col=document.createElement('col');
+    col.style.width=pct+'%';
+    newCg.appendChild(col);
+  }
+  tbl.insertBefore(newCg,tbl.firstChild);
+  /* 셀 정규화 */
+  Array.from(tbl.querySelectorAll('td,th')).forEach(function(cell){
+    var isHeader=cell.tagName==='TH';
+    cell.removeAttribute('class');
+    cell.removeAttribute('width');
+    cell.removeAttribute('height');
+    cell.contentEditable='true';
+    /* 기존 텍스트 색상 보존 */
+    var origColor=cell.style.color||'';
+    var origBg=cell.style.backgroundColor||cell.style.background||'';
+    var origAlign=cell.style.textAlign||cell.getAttribute('align')||'left';
+    cell.removeAttribute('align');
+    cell.style.cssText='border:1px solid var(--abdr);padding:8px 10px;font-size:13px;min-width:60px;text-align:'+origAlign+';vertical-align:top';
+    if(isHeader) cell.style.fontWeight='600';
+    if(origColor) cell.style.color=origColor;
+    if(origBg) cell.style.backgroundColor=origBg;
+  });
+  /* 불필요한 속성 제거 */
+  tbl.removeAttribute('cellpadding');
+  tbl.removeAttribute('cellspacing');
+  tbl.removeAttribute('border');
+  /* tbody 확인 */
+  if(!tbl.querySelector('tbody')){
+    var tbody=document.createElement('tbody');
+    while(tbl.rows.length){tbody.appendChild(tbl.rows[0]);}
+    if(tbl.querySelector('colgroup')){
+      tbl.querySelector('colgroup').after(tbody);
+    } else {
+      tbl.appendChild(tbody);
+    }
+  }
+}
+
+/* ── 동영상/GIF 삽입 ── */
+function rteInsertVideo(e){
+  var file=e.target.files[0];
+  if(!file)return;
+  _insertMediaFile(file, file.type==='image/gif'?'gif':'video');
+  e.target.value='';
+}
+function _insertMediaFile(file, type){
+  var r=new FileReader();
+  r.onload=function(ev){
+    var src=ev.target.result;
+    var html='';
+    if(type==='gif'){
+      html='<img src="'+src+'" style="max-width:100%;width:100%;height:auto;border-radius:8px;margin:12px 0;display:block" data-type="gif">';
+    } else {
+      html='<div class="rte-video-wrap" contenteditable="false" style="margin:12px 0;border-radius:10px;overflow:hidden;background:#000;position:relative">'
+        +'<video src="'+src+'" controls playsinline preload="metadata" style="width:100%;display:block;border-radius:10px"></video>'
+        +'</div>';
+    }
+    document.getElementById('rteBody').focus();
+    restoreRange();
+    document.execCommand('insertHTML',false,html+'<p><br></p>');
+    saveRange();
+  };
+  r.readAsDataURL(file);
+}
+
 /* ── 색상 팝업 ── */
 let _colorMode='fore';
 function openColorPopup(mode,btn){
@@ -4261,10 +4409,10 @@ async function savePost(){
   if(!title){toast('⚠️ 제목을 입력하세요');return;}
   try{
     const rawContent=document.getElementById('rteBody')?.innerHTML||'';
-    const hasBase64=/src="data:/.test(rawContent);
+    const hasBase64=/src="data:(image|video)\//.test(rawContent);
     let content=rawContent;
     if(hasBase64){
-      toast('이미지 업로드 중… (최대 20초)');
+      toast('미디어 업로드 중… (최대 20초)');
       try{
         content=await uploadRteImages(rawContent);
         if(/src="data:/.test(content)){
@@ -4279,7 +4427,7 @@ async function savePost(){
         }
       }catch(e){
         console.error('이미지 처리 오류',e);
-        content=rawContent.replace(/src="data:image[^"]*"/g,'src="" data-removed="1"');
+        content=rawContent.replace(/src="data:image[^"]*"/g,'src="" data-removed="1"').replace(/src="data:video[^"]*"/g,'src="" data-removed="1"');
         toast('⚠️ 이미지 처리 오류');
       }
     }
