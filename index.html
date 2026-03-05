@@ -3948,10 +3948,13 @@ function rtePasteHandler(e){
 function _normalizeTable(tbl){
   /* 기본 스타일 */
   tbl.removeAttribute('class');
+  tbl.removeAttribute('data-block-id');
+  tbl.removeAttribute('data-pm-slice');
   tbl.style.cssText='border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed';
   /* colgroup 제거 후 재생성 */
-  var cg=tbl.querySelector('colgroup');
-  if(cg) cg.remove();
+  tbl.querySelectorAll('colgroup').forEach(function(cg){cg.remove();});
+  /* caption, thead→tbody 정리 */
+  tbl.querySelectorAll('caption').forEach(function(c){c.remove();});
   /* 첫 행에서 열 수 파악 */
   var firstRow=tbl.rows[0];
   if(!firstRow)return;
@@ -3966,23 +3969,71 @@ function _normalizeTable(tbl){
     newCg.appendChild(col);
   }
   tbl.insertBefore(newCg,tbl.firstChild);
+
+  /* 전체 행 순회: 첫 행이 TH이면 헤더로 간주 */
+  var hasHeader=firstRow.cells[0]&&firstRow.cells[0].tagName==='TH';
+
   /* 셀 정규화 */
   Array.from(tbl.querySelectorAll('td,th')).forEach(function(cell){
     var isHeader=cell.tagName==='TH';
+    /* 텍스트 정렬만 보존 */
+    var origAlign=cell.style.textAlign||cell.getAttribute('align')||'left';
+    /* 모든 속성 제거 */
     cell.removeAttribute('class');
     cell.removeAttribute('width');
     cell.removeAttribute('height');
-    cell.contentEditable='true';
-    /* 기존 텍스트 색상 보존 */
-    var origColor=cell.style.color||'';
-    var origBg=cell.style.backgroundColor||cell.style.background||'';
-    var origAlign=cell.style.textAlign||cell.getAttribute('align')||'left';
     cell.removeAttribute('align');
+    cell.removeAttribute('valign');
+    cell.removeAttribute('data-cell-id');
+    cell.removeAttribute('data-colwidth');
+    cell.removeAttribute('colspan');
+    cell.removeAttribute('rowspan');
+    cell.contentEditable='true';
+    /* 에디터 기본 스타일 적용 (색상 제거) */
     cell.style.cssText='border:1px solid var(--abdr);padding:8px 10px;font-size:13px;min-width:60px;text-align:'+origAlign+';vertical-align:top';
     if(isHeader) cell.style.fontWeight='600';
-    if(origColor) cell.style.color=origColor;
-    if(origBg) cell.style.backgroundColor=origBg;
+
+    /* 셀 내부 span/strong/em 등의 인라인 스타일 정리 */
+    cell.querySelectorAll('span,font,b,strong,em,i,u,a').forEach(function(el){
+      /* color, background 등 노션 고유 스타일 제거 */
+      if(el.style){
+        el.style.removeProperty('color');
+        el.style.removeProperty('background');
+        el.style.removeProperty('background-color');
+        el.style.removeProperty('font-family');
+        el.style.removeProperty('font-size');
+        el.style.removeProperty('line-height');
+        el.style.removeProperty('letter-spacing');
+        el.style.removeProperty('white-space');
+        el.style.removeProperty('-webkit-text-stroke-width');
+        /* 스타일이 비어있으면 속성 자체 제거 */
+        if(!el.getAttribute('style')?.trim()) el.removeAttribute('style');
+      }
+      /* <font> 태그를 텍스트로 교체 */
+      if(el.tagName==='FONT'){
+        var sp=document.createElement('span');
+        sp.innerHTML=el.innerHTML;
+        el.replaceWith(sp);
+      }
+    });
+    /* 불필요한 빈 <p>, <div> 정리 */
+    cell.querySelectorAll('p,div').forEach(function(block){
+      if(block.style){
+        block.style.removeProperty('color');
+        block.style.removeProperty('background');
+        block.style.removeProperty('background-color');
+        block.style.removeProperty('font-family');
+        block.style.removeProperty('font-size');
+        block.style.removeProperty('line-height');
+        block.style.removeProperty('padding');
+        block.style.removeProperty('margin');
+        if(!block.getAttribute('style')?.trim()) block.removeAttribute('style');
+      }
+      block.removeAttribute('class');
+      block.removeAttribute('data-block-id');
+    });
   });
+
   /* 불필요한 속성 제거 */
   tbl.removeAttribute('cellpadding');
   tbl.removeAttribute('cellspacing');
@@ -3991,11 +4042,9 @@ function _normalizeTable(tbl){
   if(!tbl.querySelector('tbody')){
     var tbody=document.createElement('tbody');
     while(tbl.rows.length){tbody.appendChild(tbl.rows[0]);}
-    if(tbl.querySelector('colgroup')){
-      tbl.querySelector('colgroup').after(tbody);
-    } else {
-      tbl.appendChild(tbody);
-    }
+    var cg2=tbl.querySelector('colgroup');
+    if(cg2) cg2.after(tbody);
+    else tbl.appendChild(tbody);
   }
 }
 
