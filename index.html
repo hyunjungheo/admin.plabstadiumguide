@@ -3019,7 +3019,9 @@ function editSvcPage(svcId){
   const svc = S.services.find(s=>s.id===svcId);
   if(!svc) return;
   if(!S.servicePages) S.servicePages={};
-  const content = S.servicePages[svcId] || '';
+  /* 콘텐츠 로드 시 배경색 문자열 제거 (콜아웃/카드 제외) */
+  let content = S.servicePages[svcId] || '';
+  content = _stripBgFromHtml(content);
 
   pg('service-cards'); // 현재 페이지 유지
   document.getElementById('pActs').innerHTML=`
@@ -3051,26 +3053,48 @@ function editSvcPage(svcId){
   setTimeout(()=>initTableResize(),80);
 }
 
-/* ── 에디터 내부 배경색 정리 ── */
+/* ── HTML 문자열에서 배경색 제거 ── */
+function _stripBgFromHtml(html){
+  if(!html)return html;
+  var tmp=document.createElement('div');
+  tmp.innerHTML=html;
+  tmp.querySelectorAll('*').forEach(function(el){
+    /* 보존할 요소 */
+    if(el.classList.contains('callout')||el.closest('.callout')) return;
+    if(el.classList.contains('img-link-card')||el.closest('.img-link-card')) return;
+    if(el.classList.contains('rte-video-wrap')||el.closest('.rte-video-wrap')) return;
+    if(el.classList.contains('callout-icon')) return;
+    if(el.getAttribute('data-callout')) return;
+    /* inline style에서 background 관련 제거 */
+    var st=el.getAttribute('style');
+    if(!st) return;
+    var cleaned=st
+      .replace(/background-color\s*:\s*[^;]+;?/gi,'')
+      .replace(/background\s*:\s*(?!.*(?:url|gradient))[^;]+;?/gi,'')
+      .trim();
+    if(!cleaned||cleaned===';') el.removeAttribute('style');
+    else if(cleaned!==st) el.setAttribute('style',cleaned);
+  });
+  return tmp.innerHTML;
+}
+
+/* ── 에디터 내부 배경색 정리 (DOM) ── */
 function _cleanEditorBg(container){
   if(!container)return;
-  /* 직접 자식 중 배경이 있는 div/section 정리 */
-  container.querySelectorAll('div,section,article,main,header,footer,aside,nav').forEach(function(el){
-    if(!el.style)return;
-    /* 콜아웃, 이미지카드, 동영상 등은 보존 */
-    if(el.classList.contains('callout')||el.classList.contains('img-link-card')||
-       el.classList.contains('img-link-card-body')||el.classList.contains('rte-video-wrap')||
-       el.getAttribute('data-callout')) return;
-    /* 배경 관련 스타일 제거 */
-    var bg=el.style.background||el.style.backgroundColor||'';
-    if(bg&&bg!=='transparent'){
-      el.style.removeProperty('background');
-      el.style.removeProperty('background-color');
-    }
-    /* 빈 style 속성 제거 */
-    if(el.hasAttribute('style')&&!el.getAttribute('style').trim()){
-      el.removeAttribute('style');
-    }
+  container.querySelectorAll('*').forEach(function(el){
+    if(el.classList.contains('callout')||el.closest('.callout')) return;
+    if(el.classList.contains('img-link-card')||el.closest('.img-link-card')) return;
+    if(el.classList.contains('rte-video-wrap')||el.closest('.rte-video-wrap')) return;
+    if(el.classList.contains('callout-icon')) return;
+    if(el.getAttribute('data-callout')) return;
+    var st=el.getAttribute('style');
+    if(!st) return;
+    var cleaned=st
+      .replace(/background-color\s*:\s*[^;]+;?/gi,'')
+      .replace(/background\s*:\s*(?!.*(?:url|gradient))[^;]+;?/gi,'')
+      .trim();
+    if(!cleaned||cleaned===';') el.removeAttribute('style');
+    else if(cleaned!==st) el.setAttribute('style',cleaned);
   });
 }
 
@@ -3079,25 +3103,15 @@ function rteStripBg(){
   var rb=document.getElementById('rteBody');
   if(!rb)return;
   _cleanEditorBg(rb);
-  /* 추가: span 등의 배경도 제거 */
-  rb.querySelectorAll('span,p,h1,h2,h3,h4,h5,h6,li,td,th').forEach(function(el){
-    if(!el.style)return;
-    if(el.classList.contains('callout-icon'))return;
-    var bg=el.style.background||el.style.backgroundColor||'';
-    if(bg&&bg!=='transparent'){
-      el.style.removeProperty('background');
-      el.style.removeProperty('background-color');
-    }
-    if(el.hasAttribute('style')&&!el.getAttribute('style').trim()) el.removeAttribute('style');
-  });
   toast('✓ 배경색이 초기화되었습니다');
 }
 function saveSvcPage(svcId){
   if(!S.servicePages) S.servicePages={};
-  /* 저장 전 콘텐츠 내 불필요한 배경색 제거 */
   var rb=document.getElementById('rteBody');
   if(rb) _cleanEditorBg(rb);
-  S.servicePages[svcId]=rb?.innerHTML||'';
+  var html=rb?.innerHTML||'';
+  /* 저장 시에도 배경색 한번 더 정리 */
+  S.servicePages[svcId]=_stripBgFromHtml(html);
   save();
   _editorDirty=false;
   saveConfirm('서비스 소개 페이지가 저장됐습니다', ()=>rServiceCards());
