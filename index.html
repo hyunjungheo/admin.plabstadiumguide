@@ -363,7 +363,6 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 /* 들여쓰기 간격 */
 .rte-body ul ul,.rte-body ol ol,.rte-body ul ol,.rte-body ol ul{margin:2px 0;padding-left:22px}
 .rte-body blockquote{border-left:3px solid var(--abl);padding:8px 14px;color:var(--am);margin:10px 0;font-style:italic}
-.rte-body hr{border:none;border-top:1px solid var(--abdr);margin:16px 0}
 .rte-body table{border-collapse:collapse;width:100%;margin:12px 0;border-radius:6px;overflow:hidden}
 .rte-body table td,.rte-body table th{border:1px solid var(--abdr);padding:7px 12px;font-size:13px;min-width:60px;vertical-align:top;line-height:1.5}
 .rte-body table th{font-weight:600;color:var(--at);font-size:12.5px;letter-spacing:.01em}
@@ -377,7 +376,9 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 /* 인라인 코드 */
 .rte-body code{background:rgba(135,131,120,.15);color:#e03e3e;padding:2px 5px;border-radius:4px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:.88em}
 /* 구분선 */
-.rte-body hr{border:none;border-top:2px solid var(--abdr);margin:18px 0}
+.rte-body hr{border:none;border-top:2px solid var(--abdr);margin:18px 0;cursor:pointer}
+.rte-body hr:hover{border-top-color:var(--abl);opacity:.6}
+.rte-body hr.hr-selected{border-top:2px solid var(--abl);outline:2px solid rgba(78,142,247,.3);outline-offset:4px;border-radius:2px}
 /* 다단 컬럼 레이아웃 */
 .rte-body .col-layout{display:grid;gap:16px;margin:12px 0;width:100%}
 .rte-body .col-layout.cols-2{grid-template-columns:repeat(2,1fr)}
@@ -3037,7 +3038,7 @@ function editSvcPage(svcId){
   <div class="panel">
     <div class="pbody" style="padding:0">
       ${buildRteToolbar()}
-      <div class="rte-body" id="rteBody" contenteditable="true" spellcheck="false" onkeydown="rteTab(event)">${content}</div>
+      <div class="rte-body" id="rteBody" contenteditable="true" spellcheck="false" onkeydown="rteKeyDown(event)" onmouseup="saveRange()" onkeyup="saveRange()" onclick="onRteImgClick(event)">${content}</div>
     </div>
   </div>`;
   // 이미지 드랍
@@ -3886,6 +3887,24 @@ function rteInlineCode(){
 }
 
 function rteKeyDown(e){
+  /* ── 선택된 HR 삭제 ── */
+  if(window._selHr && (e.key==='Backspace'||e.key==='Delete')){
+    e.preventDefault();
+    var hr=window._selHr;
+    /* 커서를 이전/다음 형제로 이동 */
+    var next=hr.nextElementSibling||hr.previousElementSibling;
+    hr.remove();
+    window._selHr=null;
+    if(next){
+      var sel=window.getSelection();
+      var range=document.createRange();
+      range.selectNodeContents(next);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    return;
+  }
   // 백틱 = 인라인 코드
   if(e.key==='`'){
     e.preventDefault();
@@ -3939,6 +3958,21 @@ function onRteImgClick(e){
   /* 링크 카드 클릭 시 편집 중 네비게이션 방지 */
   const lc=e.target.closest('.img-link-card');
   if(lc){e.preventDefault();e.stopPropagation();return;}
+
+  /* ── HR 클릭: 선택 표시 + Delete/Backspace로 삭제 ── */
+  if(e.target.tagName==='HR'){
+    e.preventDefault();e.stopPropagation();
+    document.querySelectorAll('#rteBody hr.hr-selected').forEach(h=>h.classList.remove('hr-selected'));
+    e.target.classList.add('hr-selected');
+    window._selHr=e.target;
+    return;
+  }
+  /* HR 선택 해제 */
+  if(window._selHr){
+    document.querySelectorAll('#rteBody hr.hr-selected').forEach(h=>h.classList.remove('hr-selected'));
+    window._selHr=null;
+  }
+
   const img=e.target;
   if(img.tagName!=='IMG')return;
   // 기존 선택 해제
