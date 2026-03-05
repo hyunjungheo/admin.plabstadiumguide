@@ -3015,13 +3015,77 @@ function buildRteToolbar(){
   </div>`;
 }
 
+/* ── sp- 템플릿 → 일반 에디터 HTML 변환 ── */
+function _convertSpToPlain(html){
+  if(!html||!/<[^>]+class="sp-/.test(html)) return html;
+  var tmp=document.createElement('div');
+  tmp.innerHTML=html;
+  /* sp-hero → h2 + p */
+  tmp.querySelectorAll('.sp-hero').forEach(function(hero){
+    var frag=document.createDocumentFragment();
+    var icon=hero.querySelector('.sp-hero-icon');
+    var title=hero.querySelector('.sp-title');
+    var lead=hero.querySelector('.sp-lead');
+    if(title){var h=document.createElement('h2');h.innerHTML=title.innerHTML;frag.appendChild(h);}
+    if(lead){var p=document.createElement('p');p.innerHTML=lead.innerHTML;frag.appendChild(p);}
+    hero.replaceWith(frag);
+  });
+  /* sp-card-grid → 3단 컬럼 div */
+  tmp.querySelectorAll('.sp-card-grid').forEach(function(grid){
+    var cols=grid.querySelectorAll('.sp-card');
+    var colHtml=Array.from(cols).map(function(c){
+      var icon=c.querySelector('.sp-card-icon');
+      var title=c.querySelector('.sp-card-title');
+      var desc=c.querySelector('.sp-card-desc');
+      return '<div style="text-align:center;padding:16px">'
+        +(icon?'<div style="font-size:36px;margin-bottom:8px">'+icon.innerHTML+'</div>':'')
+        +(title?'<div style="font-weight:700;margin-bottom:4px">'+title.innerHTML+'</div>':'')
+        +(desc?'<div style="font-size:13px;color:var(--am)">'+desc.innerHTML+'</div>':'')
+        +'</div>';
+    }).join('');
+    var n=cols.length||3;
+    var wrap=document.createElement('div');
+    wrap.style.cssText='display:grid;grid-template-columns:repeat('+n+',1fr);gap:10px;margin:14px 0';
+    wrap.innerHTML=colHtml;
+    grid.replaceWith(wrap);
+  });
+  /* sp-steps → 번호 리스트 */
+  tmp.querySelectorAll('.sp-steps').forEach(function(steps){
+    var items=steps.querySelectorAll('.sp-step');
+    var ol=document.createElement('ol');
+    ol.style.cssText='padding-left:24px;margin:8px 0';
+    items.forEach(function(s){
+      var li=document.createElement('li');
+      li.style.cssText='margin:6px 0';
+      var inner=s.querySelector('div');
+      li.innerHTML=inner?inner.innerHTML:s.innerHTML;
+      ol.appendChild(li);
+    });
+    steps.replaceWith(ol);
+  });
+  /* sp-section → 일반 div (unwrap) */
+  tmp.querySelectorAll('.sp-section').forEach(function(sec){
+    var frag=document.createDocumentFragment();
+    while(sec.firstChild) frag.appendChild(sec.firstChild);
+    var br=document.createElement('p');br.innerHTML='<br>';
+    frag.appendChild(br);
+    sec.replaceWith(frag);
+  });
+  /* 남은 sp- 클래스 제거 */
+  tmp.querySelectorAll('[class*="sp-"]').forEach(function(el){
+    el.removeAttribute('class');
+  });
+  return tmp.innerHTML;
+}
+
 /* ── 서비스 상세 페이지 편집 ── */
 function editSvcPage(svcId){
   const svc = S.services.find(s=>s.id===svcId);
   if(!svc) return;
   if(!S.servicePages) S.servicePages={};
-  /* 콘텐츠 로드 시 배경색 문자열 제거 (콜아웃/카드 제외) */
+  /* 콘텐츠 로드 시 배경색 문자열 제거 + sp-템플릿 → 일반 에디터 변환 */
   let content = S.servicePages[svcId] || '';
+  content = _convertSpToPlain(content);
   content = _stripBgFromHtml(content);
 
   pg('service-cards'); // 현재 페이지 유지
