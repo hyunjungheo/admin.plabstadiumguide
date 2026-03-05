@@ -2949,6 +2949,70 @@ function delCat(id){if(!confirm('삭제?'))return;S.categories=S.categories.filt
 /* ════════════════════════════════════
    ⑤ HOME SERVICE CARD
 ════════════════════════════════════ */
+/* ── RTE 툴바 빌더 (서비스 페이지 등 공용) ── */
+function buildRteToolbar(){
+  return `<div class="rte-toolbar" id="rteToolbar">
+    <select class="rtb-fs" onchange="rteCmd('formatBlock',this.value);this.blur()" title="블록 스타일">
+      <option value="p">본문</option><option value="h1">제목 1</option><option value="h2">제목 2</option>
+      <option value="h3">제목 3</option><option value="pre">코드 블록</option><option value="blockquote">인용</option>
+    </select>
+    <select class="rtb-fs" onchange="setFontSize(this.value);this.blur()" style="width:55px">
+      <option value="">크기</option><option value="12px">12</option><option value="13px">13</option>
+      <option value="14px">14</option><option value="16px">16</option><option value="18px">18</option>
+      <option value="20px">20</option><option value="24px">24</option><option value="28px">28</option>
+    </select>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="rteCmd('bold')" title="굵게"><b>B</b></button>
+    <button class="rtb" onclick="rteCmd('italic')" title="기울기"><i>I</i></button>
+    <button class="rtb" onclick="rteCmd('underline')" title="밑줄"><u>U</u></button>
+    <button class="rtb" onclick="rteCmd('strikeThrough')" title="취소선"><s>S</s></button>
+    <div class="rte-sep"></div>
+    <button class="rtb" id="btnFontColor2" onclick="openColorPopup('fore',this)" title="글자 색">
+      <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span style="font-weight:800;font-size:12px;line-height:1">A</span>
+        <span id="colorBar2" style="width:14px;height:3px;border-radius:2px;background:#4E8EF7"></span>
+      </span>
+    </button>
+    <button class="rtb" onclick="openColorPopup('back',this)" title="배경 색">
+      <span style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span style="font-size:11px">▭</span>
+        <span style="width:14px;height:3px;border-radius:2px;background:#FCD34D"></span>
+      </span>
+    </button>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="rteCmd('justifyLeft')" title="왼쪽">≡</button>
+    <button class="rtb" onclick="rteCmd('justifyCenter')" title="가운데">≡</button>
+    <button class="rtb" onclick="rteCmd('justifyRight')" title="오른쪽">≡</button>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="rteCmd('insertUnorderedList')" title="글머리 목록">• ≡</button>
+    <button class="rtb" onclick="rteCmd('insertOrderedList')" title="번호 목록">1. ≡</button>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="openLinkPopup(this)" title="링크">🔗</button>
+    <button class="rtb" onclick="rteCmd('insertHorizontalRule')" title="구분선">—</button>
+    <button class="rtb" onclick="rteInlineCode()" title="인라인 코드"><code style="font-size:11px;background:rgba(135,131,120,.15);padding:1px 4px;border-radius:3px">코드</code></button>
+    <button class="rtb" onclick="openTblBuilder(this)" title="표 삽입">⊞</button>
+    <button class="rtb" onclick="insertColumns(2)" title="2단">⫿2</button>
+    <button class="rtb" onclick="insertColumns(3)" title="3단">⫿3</button>
+    <button class="rtb" onclick="insertColumns(4)" title="4단">⫿4</button>
+    <button class="rtb" onclick="insertColumns(5)" title="5단">⫿5</button>
+    <button class="rtb" onclick="insertColumns(6)" title="6단">⫿6</button>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="document.getElementById('rteImgIn').click()" title="이미지">🖼️</button>
+    <button class="rtb" onclick="openGalleryInline()" title="갤러리">🖼️✦</button>
+    <button class="rtb" onclick="document.getElementById('rteVidIn').click()" title="동영상/GIF">🎬</button>
+    <input type="file" id="rteImgIn" accept="image/*" style="display:none" multiple onchange="rteInsertImages(event)">
+    <input type="file" id="rteGalIn" accept="image/*" style="display:none" multiple onchange="rteInsertGallery(event)">
+    <input type="file" id="rteVidIn" accept="video/*,image/gif" style="display:none" onchange="rteInsertVideo(event)">
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="rteCmd('undo')" title="실행취소">↩</button>
+    <button class="rtb" onclick="rteCmd('redo')" title="다시실행">↪</button>
+    <div class="rte-sep"></div>
+    <button class="rtb" onclick="rteInsertCallout()" title="콜아웃">💡 콜아웃</button>
+    <button class="rtb" onclick="rteInsertImgCard()" title="링크카드">🔗 링크카드</button>
+    <button class="rtb" id="btnFullscreen" onclick="toggleEditorFullscreen()" title="전체화면">⛶ 전체화면</button>
+  </div>`;
+}
+
 /* ── 서비스 상세 페이지 편집 ── */
 function editSvcPage(svcId){
   const svc = S.services.find(s=>s.id===svcId);
@@ -2963,8 +3027,9 @@ function editSvcPage(svcId){
     <button class="btn btn-gh" onclick="rServiceCards()">← 목록으로</button>`;
 
   document.getElementById('mainBody').innerHTML=`
-  <div style="background:rgba(78,142,247,.08);border:1px solid rgba(78,142,247,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--abl)">
-    👁️ 아래 에디터에서 보이는 내용이 홈페이지 <b>${svc.emoji} ${svc.title}</b> 카드 클릭 시 그대로 표시됩니다. 직접 클릭해서 내용을 수정할 수 있습니다.
+  <div style="background:rgba(78,142,247,.08);border:1px solid rgba(78,142,247,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--abl);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span>👁️ 아래 에디터에서 보이는 내용이 홈페이지 <b>${svc.emoji} ${svc.title}</b> 카드 클릭 시 그대로 표시됩니다.</span>
+    <button class="ios-btn ios-btn-blue" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="rteStripBg()">🧹 배경색 초기화</button>
   </div>
   <div class="panel">
     <div class="pbody" style="padding:0">
@@ -2979,10 +3044,52 @@ function editSvcPage(svcId){
   rb.addEventListener('paste',rtePasteHandler);
   rb.addEventListener('input',()=>{_editorDirty=true;});
   _editorDirty=false;
-  // 전체화면 버튼 상태 초기화
   _isFullscreen=false;
-  // 표 리사이즈 초기화
+  /* 로드 시 배경색 자동 정리 */
+  _cleanEditorBg(rb);
   setTimeout(()=>initTableResize(),80);
+}
+
+/* ── 에디터 내부 배경색 정리 ── */
+function _cleanEditorBg(container){
+  if(!container)return;
+  /* 직접 자식 중 배경이 있는 div/section 정리 */
+  container.querySelectorAll('div,section,article,main,header,footer,aside,nav').forEach(function(el){
+    if(!el.style)return;
+    /* 콜아웃, 이미지카드, 동영상 등은 보존 */
+    if(el.classList.contains('callout')||el.classList.contains('img-link-card')||
+       el.classList.contains('img-link-card-body')||el.classList.contains('rte-video-wrap')||
+       el.getAttribute('data-callout')) return;
+    /* 배경 관련 스타일 제거 */
+    var bg=el.style.background||el.style.backgroundColor||'';
+    if(bg&&bg!=='transparent'){
+      el.style.removeProperty('background');
+      el.style.removeProperty('background-color');
+    }
+    /* 빈 style 속성 제거 */
+    if(el.hasAttribute('style')&&!el.getAttribute('style').trim()){
+      el.removeAttribute('style');
+    }
+  });
+}
+
+/* ── 배경색 수동 초기화 버튼 ── */
+function rteStripBg(){
+  var rb=document.getElementById('rteBody');
+  if(!rb)return;
+  _cleanEditorBg(rb);
+  /* 추가: span 등의 배경도 제거 */
+  rb.querySelectorAll('span,p,h1,h2,h3,h4,h5,h6,li,td,th').forEach(function(el){
+    if(!el.style)return;
+    if(el.classList.contains('callout-icon'))return;
+    var bg=el.style.background||el.style.backgroundColor||'';
+    if(bg&&bg!=='transparent'){
+      el.style.removeProperty('background');
+      el.style.removeProperty('background-color');
+    }
+    if(el.hasAttribute('style')&&!el.getAttribute('style').trim()) el.removeAttribute('style');
+  });
+  toast('✓ 배경색이 초기화되었습니다');
 }
 function saveSvcPage(svcId){
   if(!S.servicePages) S.servicePages={};
