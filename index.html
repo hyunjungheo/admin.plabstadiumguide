@@ -79,6 +79,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--ab);color:var(--at);-w
 html:not(.dark) .aside{border-right:1px solid var(--abdr)}
 html:not(.dark) .atbl tr:hover td{background:rgba(0,0,0,.02)}
 html:not(.dark) .rte-body{background:#fff;position:relative}
+html.dark .rte-body{background:var(--ab);position:relative}
 .btn-rd{background:rgba(239,68,68,.1);color:#F87171;border:1px solid rgba(239,68,68,.2)}.btn-rd:hover{background:rgba(239,68,68,.18)}
 .btn-gr{background:rgba(16,185,129,.1);color:#34D399;border:1px solid rgba(16,185,129,.2)}
 .bsm{padding:5px 10px;font-size:11.5px}.bxs{padding:3px 8px;font-size:11px}
@@ -337,7 +338,7 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 .rtb-fs{width:60px;background:var(--ab);border:1px solid var(--abdr);border-radius:5px;padding:2px 6px;font-size:12px;color:var(--at);outline:none;font-family:inherit;cursor:pointer;height:26px}
 .rtb-color{width:20px;height:20px;border-radius:50%;border:2px solid var(--abdr);cursor:pointer;padding:0}
 .rte-body{
-  background:var(--ab);min-height:60vh;
+  min-height:60vh;
   font-size:14px;color:var(--at);line-height:1.75;outline:none;font-weight:400;
   position:relative;box-sizing:border-box;text-rendering:optimizeLegibility;
   max-width:780px;margin:0 auto;padding:28px 30px;width:100%;
@@ -3093,7 +3094,10 @@ function rteStripBg(){
 }
 function saveSvcPage(svcId){
   if(!S.servicePages) S.servicePages={};
-  S.servicePages[svcId]=document.getElementById('rteBody')?.innerHTML||'';
+  /* 저장 전 콘텐츠 내 불필요한 배경색 제거 */
+  var rb=document.getElementById('rteBody');
+  if(rb) _cleanEditorBg(rb);
+  S.servicePages[svcId]=rb?.innerHTML||'';
   save();
   _editorDirty=false;
   saveConfirm('서비스 소개 페이지가 저장됐습니다', ()=>rServiceCards());
