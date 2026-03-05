@@ -242,11 +242,11 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
 .rte-body .callout-text{flex:1;min-width:0;outline:none}
 .rte-body .callout-text p{margin:0;font-size:14px;line-height:1.75;color:var(--at,#37352f)}
 /* ── 서비스 페이지 미리보기 (홈페이지 동일 렌더링) ── */
-.rte-body .sp-hero{text-align:center;padding:32px 20px 24px;border-bottom:1px solid var(--abdr);margin:-32px -40px 0;background:var(--as)}
+.rte-body .sp-hero{text-align:center;padding:32px 20px 24px}
 .rte-body .sp-hero-icon{font-size:48px;margin-bottom:12px;line-height:1}
 .rte-body .sp-title{font-size:24px;font-weight:800;color:var(--at);letter-spacing:-.02em;margin-bottom:8px}
 .rte-body .sp-lead{font-size:14.5px;color:var(--am);line-height:1.6;max-width:360px;margin:0 auto}
-.rte-body .sp-section{padding:24px 0;border-bottom:1px solid var(--abdr)}
+.rte-body .sp-section{padding:24px 0}
 .rte-body .sp-section:last-child{border-bottom:none}
 .rte-body .sp-section h2{font-size:17px;font-weight:700;color:var(--at);margin-bottom:10px;letter-spacing:-.01em}
 .rte-body .sp-section p{font-size:14px;color:var(--am);line-height:1.7;margin-bottom:12px}
@@ -3066,6 +3066,7 @@ function _stripBgFromHtml(html){
     if(el.classList.contains('rte-video-wrap')||el.closest('.rte-video-wrap')) return;
     if(el.classList.contains('callout-icon')) return;
     if(el.getAttribute('data-callout')) return;
+    if(el.className&&/\bsp-/.test(el.className)) return;
     /* inline style에서 background 관련 제거 */
     var st=el.getAttribute('style');
     if(!st) return;
@@ -3088,6 +3089,7 @@ function _cleanEditorBg(container){
     if(el.classList.contains('rte-video-wrap')||el.closest('.rte-video-wrap')) return;
     if(el.classList.contains('callout-icon')) return;
     if(el.getAttribute('data-callout')) return;
+    if(el.className&&/\bsp-/.test(el.className)) return;
     var st=el.getAttribute('style');
     if(!st) return;
     var cleaned=st
