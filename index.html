@@ -3059,7 +3059,7 @@ function _stripBgFromHtml(html){
   if(!html)return html;
   var tmp=document.createElement('div');
   tmp.innerHTML=html;
-  tmp.querySelectorAll('*').forEach(function(el){
+  tmp.querySelectorAll('div,section,article,main,header,footer,aside,nav').forEach(function(el){
     /* 보존할 요소 */
     if(el.classList.contains('callout')||el.closest('.callout')) return;
     if(el.classList.contains('img-link-card')||el.closest('.img-link-card')) return;
@@ -3083,7 +3083,7 @@ function _stripBgFromHtml(html){
 /* ── 에디터 내부 배경색 정리 (DOM) ── */
 function _cleanEditorBg(container){
   if(!container)return;
-  container.querySelectorAll('*').forEach(function(el){
+  container.querySelectorAll('div,section,article,main,header,footer,aside,nav').forEach(function(el){
     if(el.classList.contains('callout')||el.closest('.callout')) return;
     if(el.classList.contains('img-link-card')||el.closest('.img-link-card')) return;
     if(el.classList.contains('rte-video-wrap')||el.closest('.rte-video-wrap')) return;
