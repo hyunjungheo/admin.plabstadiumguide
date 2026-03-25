@@ -1955,8 +1955,21 @@ function saveHero(){
 ════════════════════════════════════ */
 function rBanner(){
   document.getElementById('pActs').innerHTML=`<button class="btn btn-gh" onclick="manageUpdateTypes()">⚙️ 유형 관리</button> <button class="btn btn-bl" onclick="openUpdModal()">＋ 새 소식 추가</button>`;
-  const rows=S.updates.map(u=>`
-    <tr>
+
+  const bannerON = S.updates.filter(u=>u.showInBanner);
+  const bannerOFF = S.updates.filter(u=>!u.showInBanner);
+
+  const makeRows = (list, isBanner) => list.map((u, i) => `
+    <tr id="updRow_${u.id}" ${isBanner?`draggable="true" ondragstart="updDragStart(event,'${u.id}')" ondragover="updDragOver(event,'${u.id}')" ondragleave="updDragLeave(event)" ondrop="updDrop(event,'${u.id}')"`:''} style="${isBanner?'cursor:grab':''}">
+      <td style="width:36px;text-align:center">
+        ${isBanner
+          ? `<div style="display:flex;flex-direction:column;gap:2px;align-items:center">
+               <button class="ord-btn" onclick="moveUpd('${u.id}',-1)" ${i===0?'disabled':''}>▲</button>
+               <button class="ord-btn" onclick="moveUpd('${u.id}',1)" ${i===list.length-1?'disabled':''}>▼</button>
+             </div>`
+          : `<span style="font-size:11px;color:var(--abdr)">⠿</span>`}
+      </td>
+      <td style="width:24px;text-align:center;font-size:12px;font-weight:700;color:var(--am)">${isBanner?i+1:'—'}</td>
       <td><span class="badge badge-${u.type}">${(S.updateTypes||DEF.updateTypes).find(t=>t.id===u.type)?.badge||u.type}</span></td>
       <td style="text-align:center">
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer">
@@ -1964,20 +1977,81 @@ function rBanner(){
           <span style="font-size:11px;color:${u.showInBanner?'var(--blue)':'var(--am)'}">${u.showInBanner?'ON':'OFF'}</span>
         </label>
       </td>
-      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.title}</td>
+      <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.title}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.date}</td>
       <td style="font-size:11.5px;color:var(--am)">${u.gallery?.length?`📷 ${u.gallery.length}장`:'없음'}</td>
       <td><div style="display:flex;gap:5px"><button class="ios-btn ios-btn-blue" onclick="editUpd('${u.id}')">편집</button><button class="ios-btn ios-btn-red" onclick="delUpd('${u.id}')">삭제</button></div></td>
     </tr>`).join('');
+
+  const thead = `<thead><tr><th style="width:36px"></th><th style="width:24px">#</th><th>유형</th><th style="text-align:center">배너 노출</th><th>제목</th><th>날짜</th><th>갤러리</th><th style="text-align:center">작업</th></tr></thead>`;
+
   document.getElementById('mainBody').innerHTML=`
+  ${bannerON.length?`
+  <div class="panel" style="margin-bottom:14px">
+    <div class="phd">
+      <div>
+        <div class="phd-t">🏠 배너 노출 중 <span style="font-size:12px;font-weight:400;color:var(--am)">(${bannerON.length}개 · 홈에 순서대로 표시)</span></div>
+        <div class="phd-s">▲▼ 버튼 또는 드래그로 순서를 바꾸세요. 앞에서 최대 3개만 홈 배너에 표시됩니다.</div>
+      </div>
+    </div>
+    <div style="padding:0"><table class="atbl">${thead}<tbody id="bannerTbody">${makeRows(bannerON,true)}</tbody></table></div>
+  </div>`:''}
   <div class="panel">
-    <div class="phd"><div><div class="phd-t">업데이트 소식 목록</div><div class="phd-s">최대 3개가 홈 배너에 노출됩니다</div></div></div>
-    <div style="padding:0">${S.updates.length?`<table class="atbl"><thead><tr><th>유형</th><th style="text-align:center">배너 노출</th><th>제목</th><th>날짜</th><th>갤러리</th><th style="text-align:center">작업</th></tr></thead><tbody>${rows}</tbody></table>`:
+    <div class="phd"><div><div class="phd-t">전체 소식 목록</div><div class="phd-s">배너 ON으로 설정하면 홈 상단에 노출됩니다</div></div></div>
+    <div style="padding:0">${S.updates.length?`<table class="atbl">${thead}<tbody>${makeRows(bannerON,true)+makeRows(bannerOFF,false)}</tbody></table>`:
     '<div style="text-align:center;padding:40px;color:var(--am)">소식이 없습니다</div>'}</div>
   </div>`;
 }
 
-let _galleryImages=[]; // 현재 편집중인 갤러리 이미지들
+/* ── 배너 순서 변경 (▲▼ 버튼) ── */
+function moveUpd(id, dir){
+  const bannerItems = S.updates.filter(u=>u.showInBanner);
+  const idx = bannerItems.findIndex(u=>u.id===id);
+  const swapIdx = idx + dir;
+  if(swapIdx < 0 || swapIdx >= bannerItems.length) return;
+  const ri = S.updates.findIndex(u=>u.id===bannerItems[idx].id);
+  const rj = S.updates.findIndex(u=>u.id===bannerItems[swapIdx].id);
+  [S.updates[ri], S.updates[rj]] = [S.updates[rj], S.updates[ri]];
+  save(); rBanner(); toast('✓ 순서 변경됨');
+}
+
+/* ── 배너 드래그앤드롭 ── */
+let _updDragId = null;
+function updDragStart(e, id){
+  _updDragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>document.getElementById('updRow_'+id)?.classList.add('dragging-item'), 0);
+}
+function updDragOver(e, id){
+  if(!_updDragId || _updDragId === id) return;
+  e.preventDefault();
+  document.querySelectorAll('#bannerTbody tr').forEach(r=>r.classList.remove('drag-over-top','drag-over-bot'));
+  const el = document.getElementById('updRow_'+id);
+  if(!el) return;
+  const rect = el.getBoundingClientRect();
+  el.classList.add(e.clientY < rect.top + rect.height/2 ? 'drag-over-top' : 'drag-over-bot');
+}
+function updDragLeave(e){
+  if(e.currentTarget.contains && e.currentTarget.contains(e.relatedTarget)) return;
+  e.currentTarget.classList.remove('drag-over-top','drag-over-bot');
+}
+function updDrop(e, targetId){
+  e.preventDefault();
+  const fromId = _updDragId; _updDragId = null;
+  document.querySelectorAll('#bannerTbody tr').forEach(r=>r.classList.remove('dragging-item','drag-over-top','drag-over-bot'));
+  if(!fromId || fromId === targetId) return;
+  const targetEl = document.getElementById('updRow_'+targetId);
+  const isTop = targetEl?.classList.contains('drag-over-top');
+  const fi = S.updates.findIndex(u=>u.id===fromId);
+  const ti = S.updates.findIndex(u=>u.id===targetId);
+  if(fi < 0 || ti < 0) return;
+  const item = S.updates.splice(fi, 1)[0];
+  const newTi = S.updates.findIndex(u=>u.id===targetId);
+  S.updates.splice(isTop ? newTi : newTi+1, 0, item);
+  save(); rBanner(); toast('✓ 순서 변경됨');
+}
+
+et _galleryImages=[]; // 현재 편집중인 갤러리 이미지들
 
 function updForm(u){
   _galleryImages = u?.gallery ? [...u.gallery] : [];
