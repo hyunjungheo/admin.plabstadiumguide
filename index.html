@@ -2051,7 +2051,7 @@ function updDrop(e, targetId){
   save(); rBanner(); toast('✓ 순서 변경됨');
 }
 
-et _galleryImages=[]; // 현재 편집중인 갤러리 이미지들
+let _galleryImages=[]; // 현재 편집중인 갤러리 이미지들
 
 function updForm(u){
   _galleryImages = u?.gallery ? [...u.gallery] : [];
