@@ -4088,14 +4088,37 @@ function rteKeyDown(e){
     const sel=window.getSelection();
     if(!sel.rangeCount)return;
     const node=sel.anchorNode;
-    const li=node?.nodeType===3?node.parentElement?.closest('li'):node?.closest?.('li');
+    const el=node?.nodeType===3?node.parentElement:node;
+    const li=el?.closest('li');
+    const td=el?.closest('td,th');
     if(li){
-      // 리스트 항목: 들여쓰기/내어쓰기
+      // 리스트 항목: Shift+Tab 내어쓰기, Tab 스페이스 삽입
       if(e.shiftKey){document.execCommand('outdent',false);}
-      else{document.execCommand('indent',false);}
+      else{document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');}
+    }else if(td){
+      // 표 셀: 다음/이전 셀로 이동
+      const cells=Array.from(td.closest('table').querySelectorAll('td,th'));
+      const idx=cells.indexOf(td);
+      if(!e.shiftKey){
+        const next=cells[idx+1];
+        if(next){next.focus();const r=document.createRange();r.selectNodeContents(next);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
+      }else{
+        const prev=cells[idx-1];
+        if(prev){prev.focus();const r=document.createRange();r.selectNodeContents(prev);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
+      }
     }else{
-      // 일반 텍스트: 스페이스 삽입
-      if(!e.shiftKey)document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');
+      // 일반 텍스트: 현재 블록에 padding-left 누적 적용 (표 삽입 시 감지 가능)
+      const body=document.getElementById('rteBody');
+      const block=el?.closest('p,div,h1,h2,h3,h4,h5,h6,blockquote');
+      const target=(block&&block!==body)?block:el;
+      if(target&&target!==body){
+        const cur=parseInt(target.style.paddingLeft)||0;
+        if(e.shiftKey){
+          target.style.paddingLeft=Math.max(0,cur-24)+'px';
+        }else{
+          target.style.paddingLeft=(cur+24)+'px';
+        }
+      }
     }
     return;
   }
@@ -4676,21 +4699,16 @@ function buildHandles(tbl){ makeRH(tbl); }
 function removeHandles(){ clearRH(); }
 
 
-/* ── 현재 커서 위치의 들여쓰기 depth 감지 ── */
+/* ── 현재 커서 블록의 padding-left 읽어 들여쓰기 px 반환 ── */
 function _getIndentMargin(){
-  const sel=window.getSelection();
-  if(!sel||!sel.rangeCount)return 0;
-  const node=sel.anchorNode;
-  const block=node?.nodeType===3?node.parentElement:node;
-  if(!block)return 0;
-  // \u00A0(&nbsp;) 연속 개수로 들여쓰기 단계 파악 (4개 = 1단계 = 24px)
-  const text=block.textContent||'';
-  let cnt=0;
-  for(let i=0;i<text.length;i++){
-    if(text[i]==='\u00A0') cnt++;
-    else break;
-  }
-  return Math.round(cnt/4)*24;
+  if(!_savedRange) return 0;
+  const node=_savedRange.startContainer;
+  const el=node?.nodeType===3?node.parentElement:node;
+  const body=document.getElementById('rteBody');
+  const block=el?.closest('p,div,h1,h2,h3,h4,h5,h6,blockquote');
+  const target=(block&&block!==body)?block:el;
+  if(!target||target===body) return 0;
+  return parseInt(target.style.paddingLeft)||0;
 }
 
 function insertTableAdv(){
@@ -4698,11 +4716,10 @@ function insertTableAdv(){
   const cols=Math.max(1,Math.min(20,parseInt(document.getElementById('tblColInp').value)||3));
   const hasHeader=document.getElementById('tblHasHeader').checked;
   const hColor=_tblHeaderColor||'#1E2840';
-  // 현재 커서의 들여쓰기 깊이 감지 후 margin-left 적용
   const indentPx=_getIndentMargin();
   const tblStyle=indentPx>0
-    ?`border-collapse:collapse;margin:10px 0 10px ${indentPx}px;width:calc(100% - ${indentPx}px);table-layout:fixed`
-    :`border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed`;
+    ? `border-collapse:collapse;margin:10px 0 10px ${indentPx}px;width:calc(100% - ${indentPx}px);table-layout:fixed`
+    : `border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed`;
   let html=`<table style="${tblStyle}"><colgroup>${Array(cols).fill(`<col style="width:${Math.round(100/cols)}%">`).join('')}</colgroup><tbody>`;
   for(let r=0;r<rows;r++){
     html+='<tr>';
