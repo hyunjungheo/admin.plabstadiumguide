@@ -4090,9 +4090,9 @@ function rteKeyDown(e){
     const node=sel.anchorNode;
     const li=node?.nodeType===3?node.parentElement?.closest('li'):node?.closest?.('li');
     if(li){
-      // 리스트 항목: 들여쓰기/내어쓰기
+      // 리스트 항목: Shift+Tab은 내어쓰기, Tab은 스페이스 삽입 (하위 글머리 기호 생성 방지)
       if(e.shiftKey){document.execCommand('outdent',false);}
-      else{document.execCommand('indent',false);}
+      else{document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');}
     }else{
       // 일반 텍스트: 스페이스 삽입
       if(!e.shiftKey)document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');
