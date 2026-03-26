@@ -4088,24 +4088,11 @@ function rteKeyDown(e){
     const sel=window.getSelection();
     if(!sel.rangeCount)return;
     const node=sel.anchorNode;
-    const el=node?.nodeType===3?node.parentElement:node;
-    const li=el?.closest('li');
-    const td=el?.closest('td,th');
+    const li=node?.nodeType===3?node.parentElement?.closest('li'):node?.closest?.('li');
     if(li){
-      // 리스트 항목: Shift+Tab은 내어쓰기, Tab은 스페이스 삽입 (하위 글머리 기호 생성 방지)
+      // 리스트 항목: 들여쓰기/내어쓰기
       if(e.shiftKey){document.execCommand('outdent',false);}
-      else{document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');}
-    }else if(td){
-      // 표 셀: 다음/이전 셀로 이동
-      const cells=Array.from(td.closest('table').querySelectorAll('td,th'));
-      const idx=cells.indexOf(td);
-      if(!e.shiftKey){
-        const next=cells[idx+1];
-        if(next){next.focus();const r=document.createRange();r.selectNodeContents(next);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
-      }else{
-        const prev=cells[idx-1];
-        if(prev){prev.focus();const r=document.createRange();r.selectNodeContents(prev);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
-      }
+      else{document.execCommand('indent',false);}
     }else{
       // 일반 텍스트: 스페이스 삽입
       if(!e.shiftKey)document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;');
@@ -4274,12 +4261,19 @@ function rtePasteHandler(e){
   var cd=e.clipboardData;if(!cd)return;
   var html=cd.getData('text/html');
   if(!html)return;
-  /* 표가 포함된 경우 정규화 */
+  /* 표가 포함된 경우 정규화 + 들여쓰기 반영 */
   if(/<table/i.test(html)){
     e.preventDefault();
+    var indentPx=_getIndentMargin();
     var tmp=document.createElement('div');
     tmp.innerHTML=html;
-    tmp.querySelectorAll('table').forEach(function(tbl){_normalizeTable(tbl);});
+    tmp.querySelectorAll('table').forEach(function(tbl){
+      _normalizeTable(tbl);
+      if(indentPx>0){
+        tbl.style.marginLeft=indentPx+'px';
+        tbl.style.width='calc(100% - '+indentPx+'px)';
+      }
+    });
     document.getElementById('rteBody').focus();
     restoreRange();
     document.execCommand('insertHTML',false,tmp.innerHTML);
@@ -4682,12 +4676,34 @@ function buildHandles(tbl){ makeRH(tbl); }
 function removeHandles(){ clearRH(); }
 
 
+/* ── 현재 커서 위치의 들여쓰기 depth 감지 ── */
+function _getIndentMargin(){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return 0;
+  const node=sel.anchorNode;
+  const block=node?.nodeType===3?node.parentElement:node;
+  if(!block)return 0;
+  // \u00A0(&nbsp;) 연속 개수로 들여쓰기 단계 파악 (4개 = 1단계 = 24px)
+  const text=block.textContent||'';
+  let cnt=0;
+  for(let i=0;i<text.length;i++){
+    if(text[i]==='\u00A0') cnt++;
+    else break;
+  }
+  return Math.round(cnt/4)*24;
+}
+
 function insertTableAdv(){
   const rows=Math.max(1,Math.min(30,parseInt(document.getElementById('tblRowInp').value)||3));
   const cols=Math.max(1,Math.min(20,parseInt(document.getElementById('tblColInp').value)||3));
   const hasHeader=document.getElementById('tblHasHeader').checked;
   const hColor=_tblHeaderColor||'#1E2840';
-  let html=`<table style="border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed"><colgroup>${Array(cols).fill(`<col style="width:${Math.round(100/cols)}%">`).join('')}</colgroup><tbody>`;
+  // 현재 커서의 들여쓰기 깊이 감지 후 margin-left 적용
+  const indentPx=_getIndentMargin();
+  const tblStyle=indentPx>0
+    ?`border-collapse:collapse;margin:10px 0 10px ${indentPx}px;width:calc(100% - ${indentPx}px);table-layout:fixed`
+    :`border-collapse:collapse;width:100%;margin:10px 0;table-layout:fixed`;
+  let html=`<table style="${tblStyle}"><colgroup>${Array(cols).fill(`<col style="width:${Math.round(100/cols)}%">`).join('')}</colgroup><tbody>`;
   for(let r=0;r<rows;r++){
     html+='<tr>';
     for(let c=0;c<cols;c++){
