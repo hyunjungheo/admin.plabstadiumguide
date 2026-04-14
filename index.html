@@ -604,10 +604,6 @@ html.dark .abody blockquote{background:var(--card);color:var(--muted);border-col
         <div class="a-logo-s">파트너 가이드 CMS</div>
       </div>
     </div>
-    <div class="asl">메인</div>
-    <div class="anav">
-      <button class="alink on" onclick="pg('dashboard')" id="nav-dashboard"><span class="alink-ic">📊</span>대시보드</button>
-    </div>
     <div class="asl">홈 편집</div>
     <div class="anav">
       <button class="alink" onclick="pg('home-hero')" id="nav-home-hero"><span class="alink-ic">🖼️</span>Hero 영역</button>
@@ -1621,7 +1617,7 @@ async function doLogin(){
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminWrap').classList.add('on');
     document.getElementById('aEmail').textContent = user.email;
-    pg('dashboard');
+    pg('home-hero');
     _fbStartLoad();
   } catch(e) {
     if(e.code !== 'auth/popup-closed-by-user'){
@@ -1643,7 +1639,6 @@ async function doLogout(){
    NAVIGATION
 ════════════════════════════════════ */
 const PM={
-  'dashboard':{t:'대시보드',s:'이용 현황 및 콘텐츠 통계'},
   'home-hero':{t:'Hero 영역',s:'홈 상단 타이틀·카피 편집'},
   'home-banner':{t:'업데이트 소식',s:'홈 배너 슬라이드 관리'},
   'home-guide':{t:'가이드 카드',s:'홈 카테고리 카드 관리'},
@@ -1672,227 +1667,7 @@ function pg(id){
     settings:rSettings,'subcats':rSubcats,'footer-edit':rFooterEdit})[id]?.();
 }
 
-/* ════════════════════════════════════
-   ① DASHBOARD — GA4 스타일
-════════════════════════════════════ */
-/* 가상 데이터 생성 */
-const GA = {
-  period: '30',
-  visitors:  12847,  visitorChg: +18.4,
-  pageviews:  48329,  pvChg: +24.1,
-  avgTime:    '3:42', timeChg: +8.2,
-  bounceRate: '38.2%',bounceChg: -5.1,
-  pageRank:[
-    {title:'소셜매치 신청 방법',      cat:'소셜 매치',  views:2107, pct:100},
-    {title:'정산 주기와 수수료 안내', cat:'정산',       views:1834, pct:87},
-    {title:'런드리 서비스 이용 방법', cat:'런드리',     views:1243, pct:59},
-    {title:'매치 취소 및 환불 정책',  cat:'소셜 매치',  views:934,  pct:44},
-    {title:'구장관리 사이트 로그인',  cat:'구장 관리',  views:821,  pct:39},
-    {title:'레벨 시스템 안내',        cat:'소셜 매치',  views:701,  pct:33},
-    {title:'세금계산서 발행 안내',    cat:'정산',       views:534,  pct:25},
-    {title:'매치 공지 발송 방법',     cat:'소셜 매치',  views:412,  pct:20},
-  ],
-  catViews:[
-    {name:'소셜 매치',   views:18420, pct:100},
-    {name:'정산',        views:9834,  pct:53},
-    {name:'구장 관리',   views:8201,  pct:45},
-    {name:'자주 묻는 질문',views:5934, pct:32},
-    {name:'마케팅',      views:3812,  pct:21},
-    {name:'런드리',      views:2128,  pct:12},
-  ],
-  devices:[
-    {name:'Mobile',     pct:58,color:'blue'},
-    {name:'Desktop',    pct:32,color:'green'},
-    {name:'Tablet',     pct:10,color:'yellow'},
-  ],
-  spark:[28,35,22,41,38,52,47,61,55,43,68,72,64,79,83,71,88,76,92,84,97,89,104,96,112,98,108,115,121,118],
-  topSearch:['정산','소셜매치 신청','취소 환불','런드리','레벨','구장 예약','위약금','세금계산서'],
-  referer:[
-    {name:'직접 접속(Direct)',pct:42},
-    {name:'구장관리 사이트',  pct:28},
-    {name:'플랩 앱',          pct:18},
-    {name:'검색(구글/네이버)',pct:8},
-    {name:'기타',             pct:4},
-  ],
-};
 
-function rDash(){
-  const acts=document.getElementById('pActs');
-  acts.innerHTML=`
-    <div class="date-range-tabs">
-      <button class="dr-tab ${GA.period==='7'?'on':''}" onclick="GA.period='7';rDash()">7일</button>
-      <button class="dr-tab ${GA.period==='30'?'on':''}" onclick="GA.period='30';rDash()">30일</button>
-      <button class="dr-tab ${GA.period==='90'?'on':''}" onclick="GA.period='90';rDash()">90일</button>
-    </div>
-    <button class="btn btn-gh bsm">📤 내보내기</button>`;
-
-  // 기간별 가중치
-  const w = GA.period==='7'?.25:GA.period==='30'?1:3.2;
-  const fmtN = n=>Math.round(n*w).toLocaleString();
-  const fmtChg = (v,inv)=>{
-    const cls=(v>0&&!inv)||(v<0&&inv)?'up':'dn';
-    const icon=v>0?'↑':'↓';
-    return`<span class="ga-chg ${cls}">${icon} ${Math.abs(v)}%</span>`;
-  };
-
-  document.getElementById('mainBody').innerHTML=`
-  <!-- KPI 카드 4개 -->
-  <div class="ga-grid">
-    <div class="ga-card blue">
-      <div class="ga-lbl">총 방문자 수 (Sessions)</div>
-      <div class="ga-val">${fmtN(GA.visitors)}</div>
-      ${fmtChg(GA.visitorChg,false)}
-      <div class="ga-mini">전 기간 대비</div>
-    </div>
-    <div class="ga-card green">
-      <div class="ga-lbl">총 페이지뷰 (Pageviews)</div>
-      <div class="ga-val">${fmtN(GA.pageviews)}</div>
-      ${fmtChg(GA.pvChg,false)}
-      <div class="ga-mini">전 기간 대비</div>
-    </div>
-    <div class="ga-card yellow">
-      <div class="ga-lbl">평균 체류 시간</div>
-      <div class="ga-val">${GA.avgTime}</div>
-      ${fmtChg(GA.timeChg,false)}
-      <div class="ga-mini">분:초 기준</div>
-    </div>
-    <div class="ga-card purple">
-      <div class="ga-lbl">이탈률 (Bounce Rate)</div>
-      <div class="ga-val">${GA.bounceRate}</div>
-      ${fmtChg(GA.bounceChg,true)}
-      <div class="ga-mini">낮을수록 좋음</div>
-    </div>
-  </div>
-
-  <!-- 방문 트렌드 + 기기 -->
-  <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:16px">
-    <div class="panel">
-      <div class="phd"><div><div class="phd-t">방문자 트렌드 (최근 30일)</div><div class="phd-s">일별 세션 수</div></div></div>
-      <div class="pbody">
-        <div class="sparkline">
-          ${GA.spark.map((v,i)=>{const max=Math.max(...GA.spark);return`<div class="spark-bar" style="height:${Math.round(v/max*100)}%" title="${v}명"></div>`;}).join('')}
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--am)">
-          <span>30일 전</span><span>15일 전</span><span>오늘</span>
-        </div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="phd"><div class="phd-t">사용 기기</div></div>
-      <div class="pbody">
-        ${GA.devices.map(d=>`
-          <div class="bar-row" style="margin-bottom:10px">
-            <div class="bar-label">${d.name}</div>
-            <div class="bar-track"><div class="bar-fill ${d.color}" style="width:${d.pct}%"></div></div>
-            <div class="bar-val">${d.pct}%</div>
-          </div>`).join('')}
-        <div style="font-size:10.5px;color:var(--am);margin-top:8px">
-          모바일 ${GA.devices[0].pct}% · 데스크탑 ${GA.devices[1].pct}% · 태블릿 ${GA.devices[2].pct}%
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 페이지별 조회수 + 카테고리별 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div class="panel">
-      <div class="phd"><div><div class="phd-t">🏆 페이지별 조회수 TOP 8</div><div class="phd-s">기간 내 총 페이지뷰 기준</div></div></div>
-      <div style="padding:0">
-        <table class="data-table">
-          <thead><tr><th>#</th><th>페이지</th><th>카테고리</th><th>조회수</th><th>비율</th></tr></thead>
-          <tbody>${GA.pageRank.map((p,i)=>`
-            <tr>
-              <td class="rank-num">${i+1}</td>
-              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${p.title}</td>
-              <td><span class="badge badge-pub" style="font-size:10px">${p.cat}</span></td>
-              <td style="color:var(--abl)">${fmtN(p.views)}</td>
-              <td class="prog-cell" style="min-width:80px"><div class="mini-bar"><div class="mini-fill" style="width:${p.pct}%"></div></div><span style="font-size:11px;color:var(--am);width:30px;text-align:right">${p.pct}%</span></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="phd"><div class="phd-t">📂 카테고리별 조회</div></div>
-      <div class="pbody">
-        <div class="bar-chart">
-          ${GA.catViews.map((c,i)=>{
-            const colors=['blue','green','yellow','purple','','green'];
-            return`<div class="bar-row">
-              <div class="bar-label">${c.name}</div>
-              <div class="bar-track"><div class="bar-fill ${colors[i]||'blue'}" style="width:${c.pct}%"></div></div>
-              <div class="bar-val">${fmtN(c.views)}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 검색어 + 유입 경로 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div class="panel">
-      <div class="phd"><div class="phd-t">🔍 인기 검색어 TOP 8</div></div>
-      <div class="pbody">
-        <div style="display:flex;flex-wrap:wrap;gap:7px">
-          ${GA.topSearch.map((q,i)=>`
-            <span style="background:var(--as2);border:1px solid var(--abdr);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--at);display:flex;align-items:center;gap:6px">
-              <span style="font-size:10px;color:var(--am);font-weight:700">${i+1}</span>${q}
-            </span>`).join('')}
-        </div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="phd"><div class="phd-t">🔗 유입 경로 (Source)</div></div>
-      <div class="pbody">
-        <div class="bar-chart">
-          ${GA.referer.map(r=>`
-            <div class="bar-row">
-              <div class="bar-label">${r.name}</div>
-              <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%"></div></div>
-              <div class="bar-val">${r.pct}%</div>
-            </div>`).join('')}
-        </div>
-        <div style="font-size:10.5px;color:var(--am);margin-top:10px;padding-top:10px;border-top:1px solid var(--abdr)">
-          ⚠️ 현재는 샘플 데이터입니다. 실제 자동 수집은 GA4 연동이 필요합니다.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:var(--as);border:1px solid rgba(245,158,11,.3);border-radius:12px;margin-top:16px;overflow:hidden">
-    <div style="padding:16px 20px;border-bottom:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:13.5px;color:var(--at)">📊 실제 데이터 자동 수집 방법 — GA4 연동 가이드</div>
-        <div style="font-size:11px;color:var(--am);margin-top:2px">현재 대시보드 수치는 샘플입니다. 아래 3단계로 실제 방문 데이터를 연동하세요</div>
-      </div>
-    </div>
-    <div style="padding:20px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px">
-        <div style="background:var(--as2);border-radius:10px;padding:16px">
-          <div style="font-size:18px;margin-bottom:8px">1️⃣</div>
-          <div style="color:var(--at);margin-bottom:6px;font-size:13px">GA4 속성 생성</div>
-          <div style="font-size:12px;color:var(--am);line-height:1.7">analytics.google.com → 관리 → 속성 만들기 → 웹 스트림 생성. 측정 ID(G-XXXXXXXX) 발급받기.</div>
-        </div>
-        <div style="background:var(--as2);border-radius:10px;padding:16px">
-          <div style="font-size:18px;margin-bottom:8px">2️⃣</div>
-          <div style="color:var(--at);margin-bottom:6px;font-size:13px">스크립트 삽입</div>
-          <div style="font-size:12px;color:var(--am);line-height:1.7">plab-site.html의 &lt;head&gt; 안에 GA4 측정 스니펫 삽입. 배포 즉시 수집 시작.</div>
-          <div style="background:var(--ab);border-radius:6px;padding:8px;margin-top:8px;font-family:monospace;font-size:10px;color:#93C5FD;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&lt;script async src="gtag/js?id=G-XXXX"&gt;</div>
-        </div>
-        <div style="background:var(--as2);border-radius:10px;padding:16px">
-          <div style="font-size:18px;margin-bottom:8px">3️⃣</div>
-          <div style="color:var(--at);margin-bottom:6px;font-size:13px">자동 수집 항목</div>
-          <div style="font-size:12px;color:var(--am);line-height:1.7">방문자수·페이지뷰·체류시간·이탈률·기기 자동 수집. 페이지별·검색어 통계는 GA4 리포트에서 확인.</div>
-        </div>
-      </div>
-      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:#FCD34D;line-height:1.7">
-        💡 정확히 말하면: 이 어드민은 GA4와 직접 연동되어 있지 않아 자동 수집이 되지 않습니다. 배포 후 실제 통계는 GA4 콘솔에서 확인하고, 어드민 내 실시간 연동을 원하면 GA4 Reporting API + 백엔드 서버 연동이 추가로 필요합니다.
-      </div>
-    </div>
-  </div>
-  `;
-}
 
 /* ════════════════════════════════════
    ② HOME HERO
