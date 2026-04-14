@@ -1581,8 +1581,8 @@ async function _fbStartLoad(){
     localStorage.setItem('plab_v5',json); /* 로컬도 갱신 */
     _fbBarSet('live');
     /* 현재 보이는 화면 새로고침 */
-    const cur=document.querySelector('.alink.on');
-    if(cur)cur.click();
+    if(curPage) pg(curPage);
+    else pg('home-hero');
   }catch(e){_fbBarSet('none');console.warn('Firebase 데이터 파싱 실패',e);}
 }
 
