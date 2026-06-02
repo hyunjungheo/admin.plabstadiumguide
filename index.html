@@ -2131,11 +2131,21 @@ function galDragOver(e){e.preventDefault();document.getElementById('galleryDrop'
 function galDrop(e){e.preventDefault();document.getElementById('galleryDrop').classList.remove('over');processGalFiles(e.dataTransfer.files);}
 function galFileInput(e){processGalFiles(e.target.files);}
 function processGalFiles(files){
-  Array.from(files).forEach(f=>{
+  Array.from(files).forEach(async f=>{
     if(!f.type.startsWith('image/'))return;
-    const r=new FileReader();
-    r.onload=(e)=>{_galleryImages.push(e.target.result);document.getElementById('galPreview').innerHTML=renderGalPreview();};
-    r.readAsDataURL(f);
+    if(window._fbUploadImage){
+      try{
+        toast('이미지 업로드 중...',3000);
+        const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f);});
+        const url=await uploadImg(dataUrl,'gallery');
+        _galleryImages.push(url);
+        document.getElementById('galPreview').innerHTML=renderGalPreview();
+      }catch(e){console.error('갤러리 업로드 실패',e);toast('이미지 업로드 실패');}
+    }else{
+      const r=new FileReader();
+      r.onload=(e)=>{_galleryImages.push(e.target.result);document.getElementById('galPreview').innerHTML=renderGalPreview();};
+      r.readAsDataURL(f);
+    }
   });
 }
 function removeGalImg(i){_galleryImages.splice(i,1);document.getElementById('galPreview').innerHTML=renderGalPreview();}
@@ -2372,15 +2382,26 @@ function saveUpdateTypes(){
 }
 // 배너 이미지 관련
 let _bnrImgData = null; // 현재 편집 중인 배너 이미지
-function onBnrImgSelect(e){
+async function onBnrImgSelect(e){
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    _bnrImgData=ev.target.result;
-    const prev=document.getElementById('bnrImgPreview');
-    if(prev)prev.innerHTML=`<img src="${_bnrImgData}" style="width:100%;height:100%;object-fit:cover">`;
-  };
-  r.readAsDataURL(f);
+  if(window._fbUploadImage){
+    try{
+      toast('이미지 업로드 중...',3000);
+      const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(f);});
+      const url=await uploadImg(dataUrl,'banners');
+      _bnrImgData=url;
+      const prev=document.getElementById('bnrImgPreview');
+      if(prev)prev.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover">`;
+    }catch(e){console.error('배너 이미지 업로드 실패',e);toast('이미지 업로드 실패');}
+  }else{
+    const r=new FileReader();
+    r.onload=ev=>{
+      _bnrImgData=ev.target.result;
+      const prev=document.getElementById('bnrImgPreview');
+      if(prev)prev.innerHTML=`<img src="${_bnrImgData}" style="width:100%;height:100%;object-fit:cover">`;
+    };
+    r.readAsDataURL(f);
+  }
 }
 function clearBnrImg(){
   _bnrImgData='__clear__';
@@ -3013,19 +3034,27 @@ function catForm(c){
 
 function openCatModal(id){const c=id?S.categories.find(x=>x.id===id):null;openModal(c?'카드 편집':'카드 추가',catForm(c),[{l:'취소',c:'btn-gh',f:'closeModal()'},{l:'저장',c:'btn-bl',f:`saveCat('${id||''}')`}]);}
 function editCat(id){openCatModal(id);}
-function onCatHeroImgSelect(e){
+async function onCatHeroImgSelect(e){
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=(ev)=>{
-    const data=ev.target.result;
-    document.getElementById('cHeroImg').value=data;
-    const prev=document.getElementById('catHeroPreview');
-    if(prev){
-      prev.style.background=`url(${data}) center/cover no-repeat`;
-      prev.innerHTML='';
-    }
-  };
-  r.readAsDataURL(f);
+  if(window._fbUploadImage){
+    try{
+      toast('이미지 업로드 중...',3000);
+      const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(f);});
+      const url=await uploadImg(dataUrl,'categories');
+      document.getElementById('cHeroImg').value=url;
+      const prev=document.getElementById('catHeroPreview');
+      if(prev){prev.style.background=`url(${url}) center/cover no-repeat`;prev.innerHTML='';}
+    }catch(e){console.error('카테고리 이미지 업로드 실패',e);toast('이미지 업로드 실패');}
+  }else{
+    const r=new FileReader();
+    r.onload=(ev)=>{
+      const data=ev.target.result;
+      document.getElementById('cHeroImg').value=data;
+      const prev=document.getElementById('catHeroPreview');
+      if(prev){prev.style.background=`url(${data}) center/cover no-repeat`;prev.innerHTML='';}
+    };
+    r.readAsDataURL(f);
+  }
 }
 async function clearCatHeroImg(){
   document.getElementById('cHeroImg').value='';
